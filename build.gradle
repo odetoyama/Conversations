@@ -6,7 +6,7 @@ buildscript {
 		mavenCentral()
 	}
 	dependencies {
-		classpath 'com.android.tools.build:gradle:0.12.2'
+		classpath 'com.android.tools.build:gradle:1.0.0'
 	}
 }
 
@@ -81,7 +81,7 @@ android {
 		buildTypes.release.signingConfig = null
 	}
 
-	buildTypes {
+/*	buildTypes {
 		applicationVariants.all { variant ->
 			def fileName = variant.packageApplication.outputFile.name.replace(".apk",
 					"-" + defaultConfig.versionName + ".apk")
@@ -94,7 +94,7 @@ android {
 					}
 				}
 		}
-	}
+	}*/
 
 	lintOptions {
 		disable 'MissingTranslation', 'InvalidPackage'
