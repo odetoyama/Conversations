@@ -1,6 +1,6 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="eu.siacs.conversations.ui.AboutActivity"
+    tools:context="com.ebdesk.ebconvo.ui.AboutActivity"
     android:background="@color/primarybackground"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"

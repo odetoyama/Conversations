@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
-    package="eu.siacs.conversations"
+    package="com.ebdesk.ebconvo"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -21,9 +21,9 @@
         android:label="@string/app_name"
         android:theme="@style/ConversationsTheme"
         tools:replace="android:label" >
-        <service android:name=".services.XmppConnectionService" />
+        <service android:name="com.ebdesk.ebconvo.services.XmppConnectionService" />
 
-        <receiver android:name=".services.EventReceiver" >
+        <receiver android:name="com.ebdesk.ebconvo.services.EventReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
@@ -32,7 +32,7 @@
         </receiver>
 
         <activity
-            android:name=".ui.ConversationActivity"
+            android:name="com.ebdesk.ebconvo.ui.ConversationActivity"
             android:label="@string/title_activity_conversations"
             android:launchMode="singleTask"
             android:windowSoftInputMode="stateHidden" >
@@ -43,7 +43,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.StartConversationActivity"
+            android:name="com.ebdesk.ebconvo.ui.StartConversationActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_start_conversation" >
             <intent-filter>
@@ -71,36 +71,36 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name="com.ebdesk.ebconvo.ui.SettingsActivity"
             android:label="@string/title_activity_settings" />
         <activity
-            android:name=".ui.ChooseContactActivity"
+            android:name="com.ebdesk.ebconvo.ui.ChooseContactActivity"
             android:label="@string/title_activity_choose_contact" />
         <activity
-            android:name=".ui.ManageAccountActivity"
+            android:name="com.ebdesk.ebconvo.ui.ManageAccountActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_manage_accounts" />
         <activity
-            android:name=".ui.EditAccountActivity"
+            android:name="com.ebdesk.ebconvo.ui.EditAccountActivity"
             android:windowSoftInputMode="stateHidden|adjustResize" />
         <activity
-            android:name=".ui.ConferenceDetailsActivity"
+            android:name="com.ebdesk.ebconvo.ui.ConferenceDetailsActivity"
             android:label="@string/title_activity_conference_details"
             android:windowSoftInputMode="stateHidden" />
         <activity
-            android:name=".ui.ContactDetailsActivity"
+            android:name="com.ebdesk.ebconvo.ui.ContactDetailsActivity"
             android:label="@string/title_activity_contact_details"
             android:windowSoftInputMode="stateHidden" />
         <activity
-            android:name=".ui.PublishProfilePictureActivity"
+            android:name="com.ebdesk.ebconvo.ui.PublishProfilePictureActivity"
             android:label="@string/mgmt_account_publish_avatar"
             android:windowSoftInputMode="stateHidden" />
         <activity
-            android:name=".ui.VerifyOTRActivity"
+            android:name="com.ebdesk.ebconvo.ui.VerifyOTRActivity"
             android:label="@string/verify_otr"
             android:windowSoftInputMode="stateHidden" />
         <activity
-            android:name=".ui.ShareWithActivity"
+            android:name="com.ebdesk.ebconvo.ui.ShareWithActivity"
             android:label="@string/title_activity_conversations" >
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -122,12 +122,12 @@
             android:theme="@style/ConversationsTheme"
             tools:replace="android:theme"/>
         <activity
-            android:name=".ui.AboutActivity"
+            android:name="com.ebdesk.ebconvo.ui.AboutActivity"
             android:label="@string/title_activity_about"
-            android:parentActivityName=".ui.SettingsActivity" >
+            android:parentActivityName="com.ebdesk.ebconvo.ui.SettingsActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="eu.siacs.conversations.ui.SettingsActivity" />
+                android:value="com.ebdesk.ebconvo.ui.SettingsActivity" />
         </activity>
     </application>
 
