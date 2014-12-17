@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversations</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">הגדרות</string>
     <string name="action_add">דיון חדש</string>
     <string name="action_accounts">נהל חשבונות</string>

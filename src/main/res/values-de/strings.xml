@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversations</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">Einstellungen</string>
     <string name="action_add">Neue Unterhaltung</string>
     <string name="action_accounts">Konten verwalten</string>
@@ -17,7 +17,7 @@
     <string name="title_activity_settings">Einstellungen</string>
     <string name="title_activity_conference_details">Konferenzdetails</string>
     <string name="title_activity_contact_details">Kontaktdetails</string>
-    <string name="title_activity_conversations">Conversations</string>
+    <string name="title_activity_conversations">eBtalk</string>
     <string name="title_activity_sharewith">Mit Unterhaltung teilen</string>
     <string name="title_activity_start_conversation">Beginne Unterhaltung</string>
     <string name="title_activity_choose_contact">Kontakt auswählen</string>

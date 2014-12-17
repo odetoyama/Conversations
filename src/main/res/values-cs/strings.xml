@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversations</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">Nastavení</string>
     <string name="action_add">Nová konverzace</string>
     <string name="action_accounts">Nastavení účtů</string>
@@ -17,7 +17,7 @@
     <string name="title_activity_settings">Nastavení</string>
     <string name="title_activity_conference_details">Detaily konference</string>
     <string name="title_activity_contact_details">Detaily kontaktu</string>
-    <string name="title_activity_conversations">Konverzace</string>
+    <string name="title_activity_conversations">eBtalk</string>
     <string name="title_activity_sharewith">Sdílet s konverzací</string>
     <string name="title_activity_start_conversation">Začít konverzaci</string>
     <string name="title_activity_choose_contact">Vybrat kontakt</string>

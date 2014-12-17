@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversations</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">設定</string>
     <string name="action_add">新對話</string>
     <string name="action_accounts">管理帳戶</string>
@@ -15,7 +15,7 @@
     <string name="title_activity_manage_accounts">管理帳戶</string>
     <string name="title_activity_conference_details">群組詳情</string>
     <string name="title_activity_contact_details">聯絡人詳情</string>
-    <string name="title_activity_conversations">對話</string>
+    <string name="title_activity_conversations">eBtalk</string>
     <string name="title_activity_sharewith">分享對話</string>
     <string name="title_activity_start_conversation">開始對話</string>
     <string name="title_activity_choose_contact">選擇聯絡人</string>

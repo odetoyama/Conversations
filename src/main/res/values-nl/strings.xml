@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversaties</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">Instellingen</string>
     <string name="action_add">Nieuwe conversatie</string>
     <string name="action_accounts">Beheer account</string>
@@ -17,7 +17,7 @@
     <string name="title_activity_settings">Instellingen</string>
     <string name="title_activity_conference_details">Groepsconversatie Details</string>
     <string name="title_activity_contact_details">Contact Details</string>
-    <string name="title_activity_conversations">Conversaties</string>
+    <string name="title_activity_conversations">eBtalk</string>
     <string name="title_activity_sharewith">Delen met Conversatie</string>
     <string name="just_now">net</string>
     <string name="minute_ago">1 min geleden</string>

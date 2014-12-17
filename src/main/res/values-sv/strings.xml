@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Conversations</string>
+    <string name="app_name">eBtalk</string>
     <string name="action_settings">Inställningar</string>
     <string name="action_add">Ny konversation</string>
     <string name="action_accounts">Kontoinställningar</string>
@@ -250,7 +250,7 @@
     <string name="pref_dont_save_encrypted_summary">Varning: Detta kan leda till att meddelanden förloras</string>
     <string name="delete_fingerprint">Ta bort fingeravtryck</string>
     <string name="request_now">Begär nu</string>
-    <string name="title_activity_conversations">Conversations</string>
+    <string name="title_activity_conversations">eBtalk</string>
     <string name="publish_avatar_explanation">Notera: Alla som kan se dina tillgänglighetsuppdateringar kommer se denna bild.</string>
     <string name="choose_presence">Välj tillgänglighet till kontakt</string>
     <string name="pref_notification_grace_period_summary">Inaktivera notifieringar en kort stund efter att en carbon copy tagits emot</string>

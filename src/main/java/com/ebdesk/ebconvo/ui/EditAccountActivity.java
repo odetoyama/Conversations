@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,6 +34,9 @@ import com.ebdesk.ebconvo.xmpp.XmppConnection.Features;
 import com.ebdesk.ebconvo.xmpp.jid.InvalidJidException;
 import com.ebdesk.ebconvo.xmpp.jid.Jid;
 import com.ebdesk.ebconvo.xmpp.pep.Avatar;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class EditAccountActivity extends XmppActivity implements OnAccountUpdate {
 
@@ -316,7 +320,17 @@ public class EditAccountActivity extends XmppActivity implements OnAccountUpdate
 						updateSaveButton();
 					}
 				});
-	}
+
+        //preload hardcoded domain
+       /* List<String> hosts = new ArrayList<>();
+        hosts.add("112.78.150.30");
+        KnownHostsAdapter mKnownHostsAdapter = new KnownHostsAdapter(this,
+                android.R.layout.simple_list_item_1, hosts);
+        this.mAccountJid.setAdapter(mKnownHostsAdapter);*/
+
+       // Toast.makeText(getApplicationContext(), xmppConnectionService.getKnownHosts().size()+"", Toast.LENGTH_LONG).show();
+
+    }
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -350,9 +364,21 @@ public class EditAccountActivity extends XmppActivity implements OnAccountUpdate
 
 	@Override
 	protected void onBackendConnected() {
+        String predefinedDomain = "112.78.150.30";
+        List<String> serverList = xmppConnectionService.getKnownHosts();
+        if (!serverList.contains(predefinedDomain)){
+            serverList.add(predefinedDomain);
+        }
+
+
+        //orig
+        /*KnownHostsAdapter mKnownHostsAdapter = new KnownHostsAdapter(this,
+                android.R.layout.simple_list_item_1,
+                xmppConnectionService.getKnownHosts());*/
+
         KnownHostsAdapter mKnownHostsAdapter = new KnownHostsAdapter(this,
                 android.R.layout.simple_list_item_1,
-                xmppConnectionService.getKnownHosts());
+                serverList);
 		if (this.jidToEdit != null) {
 			this.mAccount = xmppConnectionService.findAccountByJid(jidToEdit);
 			updateAccountInformation();
