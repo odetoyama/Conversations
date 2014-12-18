@@ -321,15 +321,6 @@ public class EditAccountActivity extends XmppActivity implements OnAccountUpdate
 					}
 				});
 
-        //preload hardcoded domain
-       /* List<String> hosts = new ArrayList<>();
-        hosts.add("112.78.150.30");
-        KnownHostsAdapter mKnownHostsAdapter = new KnownHostsAdapter(this,
-                android.R.layout.simple_list_item_1, hosts);
-        this.mAccountJid.setAdapter(mKnownHostsAdapter);*/
-
-       // Toast.makeText(getApplicationContext(), xmppConnectionService.getKnownHosts().size()+"", Toast.LENGTH_LONG).show();
-
     }
 
 	@Override
