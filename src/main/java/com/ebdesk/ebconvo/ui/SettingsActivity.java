@@ -10,7 +10,9 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceManager;
 
 public class SettingsActivity extends XmppActivity implements
@@ -46,6 +48,11 @@ public class SettingsActivity extends XmppActivity implements
 			resources.setEntryValues(entries.toArray(new CharSequence[entries
 					.size()]));
 		}
+
+        //hide preference never send crash
+//        PreferenceCategory preferenceCategoryAdvanced = (PreferenceCategory) mSettingsFragment.findPreference("advanced_options");
+//        CheckBoxPreference checkBoxPreference = (CheckBoxPreference) mSettingsFragment.findPreference("never_send");
+//        preferenceCategoryAdvanced.removePreference(checkBoxPreference);
 	}
 
 	@Override

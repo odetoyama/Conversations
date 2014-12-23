@@ -40,7 +40,7 @@ public class ExceptionHelper {
 		try {
 			final SharedPreferences preferences = PreferenceManager
 					.getDefaultSharedPreferences(context);
-			boolean neverSend = preferences.getBoolean("never_send", false);
+			boolean neverSend = preferences.getBoolean("never_send", true); //defaultnya false
 			if (neverSend) {
 				return;
 			}

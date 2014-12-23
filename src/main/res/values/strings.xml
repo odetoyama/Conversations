@@ -197,7 +197,8 @@
     <string name="decrypt">Decrypt</string>
     <string name="conferences">Conferences</string>
     <string name="search">Search</string>
-    <string name="create_contact">Create Contact</string>
+    <!--<string name="create_contact">Create Contact</string>-->
+    <string name="create_contact">Add Contact</string>
     <string name="join_conference">Join Conference</string>
     <string name="delete_contact">Delete Contact</string>
     <string name="view_contact_details">View contact details</string>
@@ -256,7 +257,7 @@
     <string name="pref_enable_legacy_ssl_summary">Enables SSLv3 support for legacy servers. Warning: SSLv3 is considered insecure.</string>
     <string name="pref_expert_options">Expert options</string>
     <string name="pref_expert_options_summary">Please be careful with these</string>
-    <string name="title_activity_about">About Conversations</string>
+    <string name="title_activity_about">About eBtalk</string>
     <string name="pref_about_conversations_summary">Build and licensing information</string>
     <string name="pref_about_message"  translatable="false">
             Conversations • the very last word in instant messaging.
@@ -282,6 +283,26 @@
             \n\nhttps://developer.android.com/tools/support-library\n(Apache License, Version 2.0)
             \n\nhttps://github.com/zxing/zxing\n(Apache License, Version 2.0)
     </string>
+    <string name="pref_about_message_customized"  translatable="false">
+            eBtalk • private instant messaging.
+            \n\nCopyright © 2014 eBdesk Mobile
+            \n\neBtalk is a messenger app that takes your privacy very seriously. Therefore we rely on
+            consistent, secure end-to-end encryption standards such as OTR(Off-the-Record Messaging).
+            You can rest assured that only you and the intended recipient can read your messages.
+            For insignificant conversations you can also use unencrypted communication.
+            \neBtalk runs with XMPP protocol. A service that allows you to chat with your friends and
+            your acquaintances. Between client and server there needn\'t be the same host because XMPP
+            uses a decentralized structure.
+            \n\n\nLibraries
+            \n\nhttps://www.bouncycastle.org\n(The MIT License (MIT))
+            \n\nhttps://www.gnu.org/software/libidn\n(Apache License, Version 2.0)
+            \n\nhttps://github.com/ge0rg/MemorizingTrustManager\n(The MIT License (MIT))
+            \n\nhttps://github.com/rtreffer/minidns\n(WTFPL)
+            \n\nhttps://github.com/open-keychain/openkeychain-api-lib\n(Apache License, Version 2.0)
+            \n\nhttps://github.com/jitsi/otr4j\n(LGPL-3.0)
+            \n\nhttps://developer.android.com/tools/support-library\n(Apache License, Version 2.0)
+            \n\nhttps://github.com/zxing/zxing\n(Apache License, Version 2.0)
+    </string>
     <string name="pref_use_larger_font">Increase font size</string>
     <string name="pref_use_larger_font_summary">Use larger font sizes across the entire app</string>
     <string name="pref_use_send_button_to_indicate_status">Send button indicates status</string>
@@ -291,6 +312,8 @@
     <string name="pref_expert_options_other">Other</string>
     <string name="pref_conference_name">Conference name</string>
     <string name="pref_conference_name_summary">Use room’s subject instead of JID to identify conferences</string>
+    <string name="pref_chat_settings">Chat Settings</string>
+    <string name="pref_privacy">Privacy</string>
     <string name="toast_message_otr_fingerprint">OTR fingerprint copied to clipboard!</string>
     <string name="conference_banned">You are banned from this conference</string>
     <string name="conference_members_only">This conference is members only</string>

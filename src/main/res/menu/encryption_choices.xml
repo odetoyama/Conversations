@@ -10,7 +10,8 @@
             android:title="@string/encryption_choice_otr"/>
         <item
             android:id="@+id/encryption_choice_pgp"
-            android:title="@string/encryption_choice_pgp"/>
+            android:title="@string/encryption_choice_pgp"
+            android:visible="false"/>
     </group>
 
 </menu>

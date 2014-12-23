@@ -30,7 +30,8 @@ public class AboutPreference extends Preference {
 			final String versionName;
 			try {
 				versionName = getContext().getPackageManager().getPackageInfo(packageName, 0).versionName;
-				setSummary("Conversations " + versionName);
+				//setSummary("Conversations " + versionName);
+				setSummary("Version " + versionName);
 			} catch (final PackageManager.NameNotFoundException e) {
 				// Using try/catch as part of the logic is sort of like this:
 				// https://xkcd.com/292/
