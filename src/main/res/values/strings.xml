@@ -383,4 +383,6 @@
     <string name="reset">Reset</string>
     <string name="account_image_description">Account avatar</string>
     <string name="copy_otr_clipboard_description">Copy OTR fingerprint to clipboard</string>
+    <string name="empty_view_text_no_contacts">No contacts</string>
+    <string name="empty_view_text_no_conferences">No conferences</string>
 </resources>

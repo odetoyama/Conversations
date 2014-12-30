@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
 import android.app.ActionBar.TabListener;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
@@ -27,9 +28,11 @@ import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
@@ -40,6 +43,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -203,6 +208,9 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 		});
 
 		mConferenceAdapter = new ListItemAdapter(this, conferences);
+        Bundle bundle1 = new Bundle();
+        bundle1.putString("tag", "conferences");
+        mConferenceListFragment.setArguments(bundle1);
 		mConferenceListFragment.setListAdapter(mConferenceAdapter);
 		mConferenceListFragment.setContextMenu(R.menu.conference_context);
 		mConferenceListFragment
@@ -216,6 +224,9 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 				});
 
 		mContactsAdapter = new ListItemAdapter(this, contacts);
+        Bundle bundle2 = new Bundle();
+        bundle2.putString("tag", "contacts");
+        mContactsListFragment.setArguments(bundle2);
 		mContactsListFragment.setListAdapter(mContactsAdapter);
 		mContactsListFragment.setContextMenu(R.menu.contact_context);
 		mContactsListFragment
@@ -225,9 +236,8 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 					public void onItemClick(AdapterView<?> arg0, View arg1,
 											int position, long arg3) {
 						openConversationForContact(position);
-					}
+                    }
 				});
-
 	}
 
 	protected void openConversationForContact(int position) {
@@ -668,7 +678,7 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 		}
 		Collections.sort(this.contacts);
 		mContactsAdapter.notifyDataSetChanged();
-	}
+    }
 
 	protected void filterConferences(String needle) {
 		this.conferences.clear();
@@ -692,8 +702,9 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 	public static class MyListFragment extends ListFragment {
 		private AdapterView.OnItemClickListener mOnItemClickListener;
 		private int mResContextMenu;
+		private String tag;
 
-		public void setContextMenu(int res) {
+        public void setContextMenu(int res) {
 			this.mResContextMenu = res;
 		}
 
@@ -713,6 +724,18 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 			super.onViewCreated(view, savedInstanceState);
 			registerForContextMenu(getListView());
 			getListView().setFastScrollEnabled(true);
+            /*if (getListAdapter().getCount() == 0){
+                if (getArguments().getString("tag").equalsIgnoreCase("contacts")){
+                    setEmptyText(getActivity().getResources().getString(R.string.empty_view_text_no_contacts));
+                } else if (getArguments().getString("tag").equalsIgnoreCase("conferences")){
+                    setEmptyText(getActivity().getResources().getString(R.string.empty_view_text_no_conferences));
+                }
+            }*/
+            if (getArguments().getString("tag").equalsIgnoreCase("contacts")){
+                setEmptyText(getActivity().getResources().getString(R.string.empty_view_text_no_contacts));
+            } else if (getArguments().getString("tag").equalsIgnoreCase("conferences")){
+                setEmptyText(getActivity().getResources().getString(R.string.empty_view_text_no_conferences));
+            }
 		}
 
 		@Override
@@ -731,26 +754,27 @@ public class StartConversationActivity extends XmppActivity implements OnRosterU
 
 		@Override
 		public boolean onContextItemSelected(MenuItem item) {
-			StartConversationActivity activity = (StartConversationActivity) getActivity();
-			switch (item.getItemId()) {
-				case R.id.context_start_conversation:
-					activity.openConversationForContact();
-					break;
-				case R.id.context_contact_details:
-					activity.openDetailsForContact();
-					break;
-				case R.id.context_delete_contact:
-					activity.deleteContact();
-					break;
-				case R.id.context_join_conference:
-					activity.openConversationForBookmark();
-					break;
-				case R.id.context_delete_conference:
-					activity.deleteConference();
-			}
-			return true;
-		}
-	}
+            StartConversationActivity activity = (StartConversationActivity) getActivity();
+            switch (item.getItemId()) {
+                case R.id.context_start_conversation:
+                    activity.openConversationForContact();
+                    break;
+                case R.id.context_contact_details:
+                    activity.openDetailsForContact();
+                    break;
+                case R.id.context_delete_contact:
+                    activity.deleteContact();
+                    break;
+                case R.id.context_join_conference:
+                    activity.openConversationForBookmark();
+                    break;
+                case R.id.context_delete_conference:
+                    activity.deleteConference();
+            }
+            return true;
+        }
+
+    }
 
 	private class Invite extends XmppUri {
 
