@@ -1,7 +1,6 @@
 package com.ebdesk.ebconvo.xmpp.stanzas;
 
 import com.ebdesk.ebconvo.xml.Element;
-import com.ebdesk.ebconvo.xmpp.jid.InvalidJidException;
 import com.ebdesk.ebconvo.xmpp.jid.Jid;
 
 public class AbstractStanza extends Element {
@@ -11,24 +10,11 @@ public class AbstractStanza extends Element {
 	}
 
 	public Jid getTo() {
-		try {
-			return Jid.fromString(getAttribute("to"));
-		} catch (final InvalidJidException e) {
-			return null;
-		}
+		return getAttributeAsJid("to");
 	}
 
 	public Jid getFrom() {
-		String from = getAttribute("from");
-		if (from == null) {
-			return null;
-		} else {
-			try {
-				return Jid.fromString(from);
-			} catch (final InvalidJidException e) {
-				return null;
-			}
-		}
+		return getAttributeAsJid("from");
 	}
 
 	public String getId() {

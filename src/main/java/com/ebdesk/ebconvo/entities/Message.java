@@ -45,6 +45,7 @@ public class Message extends AbstractEntity {
 	public static String STATUS = "status";
 	public static String TYPE = "type";
 	public static String REMOTE_MSG_ID = "remoteMsgId";
+	public static String SERVER_MSG_ID = "serverMsgId";
 	public static String RELATIVE_FILE_PATH = "relativeFilePath";
 	public boolean markable = false;
 	protected String conversationUuid;
@@ -59,6 +60,7 @@ public class Message extends AbstractEntity {
 	protected String relativeFilePath;
 	protected boolean read = true;
 	protected String remoteMsgId = null;
+	protected String serverMsgId = null;
 	protected Conversation conversation = null;
 	protected Downloadable downloadable = null;
 	private Message mNextMessage = null;
@@ -75,7 +77,7 @@ public class Message extends AbstractEntity {
 	public Message(Conversation conversation, String body, int encryption, int status) {
 		this(java.util.UUID.randomUUID().toString(),
 				conversation.getUuid(),
-				conversation.getContactJid() == null ? null : conversation.getContactJid().toBareJid(),
+				conversation.getJid() == null ? null : conversation.getJid().toBareJid(),
 				null,
 				body,
 				System.currentTimeMillis(),
@@ -83,13 +85,15 @@ public class Message extends AbstractEntity {
 				status,
 				TYPE_TEXT,
 				null,
+				null,
 				null);
 		this.conversation = conversation;
 	}
 
 	private Message(final String uuid, final String conversationUUid, final Jid counterpart,
-				   final Jid trueCounterpart, final String body, final long timeSent,
-				   final int encryption, final int status, final int type, final String remoteMsgId, final String relativeFilePath) {
+			final Jid trueCounterpart, final String body, final long timeSent,
+			final int encryption, final int status, final int type, final String remoteMsgId,
+			final String relativeFilePath, final String serverMsgId) {
 		this.uuid = uuid;
 		this.conversationUuid = conversationUUid;
 		this.counterpart = counterpart;
@@ -101,6 +105,7 @@ public class Message extends AbstractEntity {
 		this.type = type;
 		this.remoteMsgId = remoteMsgId;
 		this.relativeFilePath = relativeFilePath;
+		this.serverMsgId = serverMsgId;
 	}
 
 	public static Message fromCursor(Cursor cursor) {
@@ -136,7 +141,8 @@ public class Message extends AbstractEntity {
 				cursor.getInt(cursor.getColumnIndex(STATUS)),
 				cursor.getInt(cursor.getColumnIndex(TYPE)),
 				cursor.getString(cursor.getColumnIndex(REMOTE_MSG_ID)),
-				cursor.getString(cursor.getColumnIndex(RELATIVE_FILE_PATH)));
+				cursor.getString(cursor.getColumnIndex(RELATIVE_FILE_PATH)),
+				cursor.getString(cursor.getColumnIndex(SERVER_MSG_ID)));
 	}
 
 	public static Message createStatusMessage(Conversation conversation) {
@@ -168,6 +174,7 @@ public class Message extends AbstractEntity {
 		values.put(TYPE, type);
 		values.put(REMOTE_MSG_ID, remoteMsgId);
 		values.put(RELATIVE_FILE_PATH, relativeFilePath);
+		values.put(SERVER_MSG_ID,serverMsgId);
 		return values;
 	}
 
@@ -199,7 +206,7 @@ public class Message extends AbstractEntity {
 				return null;
 			} else {
 				return this.conversation.getAccount().getRoster()
-						.getContactFromRoster(this.trueCounterpart);
+					.getContactFromRoster(this.trueCounterpart);
 			}
 		}
 	}
@@ -248,6 +255,14 @@ public class Message extends AbstractEntity {
 		this.remoteMsgId = id;
 	}
 
+	public String getServerMsgId() {
+		return this.serverMsgId;
+	}
+
+	public void setServerMsgId(String id) {
+		this.serverMsgId = id;
+	}
+
 	public boolean isRead() {
 		return this.read;
 	}
@@ -293,38 +308,43 @@ public class Message extends AbstractEntity {
 	}
 
 	public boolean equals(Message message) {
-		return (this.remoteMsgId != null) && (this.body != null) && (this.counterpart != null) && this.remoteMsgId.equals(message.getRemoteMsgId()) && this.body.equals(message.getBody()) && this.counterpart.equals(message.getCounterpart());
+		if (this.serverMsgId != null && message.getServerMsgId() != null) {
+			return this.serverMsgId.equals(message.getServerMsgId());
+		} else {
+			return this.body != null
+				&& this.counterpart != null
+				&& ((this.remoteMsgId != null && this.remoteMsgId.equals(message.getRemoteMsgId()))
+						|| this.uuid.equals(message.getRemoteMsgId())) && this.body.equals(message.getBody())
+				&& this.counterpart.equals(message.getCounterpart());
+		}
 	}
 
 	public Message next() {
-		if (this.mNextMessage == null) {
-			synchronized (this.conversation.messages) {
+		synchronized (this.conversation.messages) {
+			if (this.mNextMessage == null) {
 				int index = this.conversation.messages.indexOf(this);
-				if (index < 0
-						|| index >= this.conversation.getMessages().size() - 1) {
+				if (index < 0 || index >= this.conversation.messages.size() - 1) {
 					this.mNextMessage = null;
 				} else {
-					this.mNextMessage = this.conversation.messages
-							.get(index + 1);
+					this.mNextMessage = this.conversation.messages.get(index + 1);
 				}
 			}
+			return this.mNextMessage;
 		}
-		return this.mNextMessage;
 	}
 
 	public Message prev() {
-		if (this.mPreviousMessage == null) {
-			synchronized (this.conversation.messages) {
+		synchronized (this.conversation.messages) {
+			if (this.mPreviousMessage == null) {
 				int index = this.conversation.messages.indexOf(this);
 				if (index <= 0 || index > this.conversation.messages.size()) {
 					this.mPreviousMessage = null;
 				} else {
-					this.mPreviousMessage = this.conversation.messages
-							.get(index - 1);
+					this.mPreviousMessage = this.conversation.messages.get(index - 1);
 				}
 			}
+			return this.mPreviousMessage;
 		}
-		return this.mPreviousMessage;
 	}
 
 	public boolean mergeable(final Message message) {
@@ -368,7 +388,7 @@ public class Message extends AbstractEntity {
 			if (!url.getProtocol().equalsIgnoreCase("http")
 					&& !url.getProtocol().equalsIgnoreCase("https")) {
 				return false;
-			}
+					}
 			if (url.getPath() == null) {
 				return false;
 			}
@@ -382,14 +402,14 @@ public class Message extends AbstractEntity {
 			String[] extensionParts = filename.split("\\.");
 			if (extensionParts.length == 2
 					&& Arrays.asList(Downloadable.VALID_IMAGE_EXTENSIONS).contains(
-					extensionParts[extensionParts.length - 1])) {
+						extensionParts[extensionParts.length - 1])) {
 				return true;
 			} else if (extensionParts.length == 3
 					&& Arrays
 					.asList(Downloadable.VALID_CRYPTO_EXTENSIONS)
 					.contains(extensionParts[extensionParts.length - 1])
 					&& Arrays.asList(Downloadable.VALID_IMAGE_EXTENSIONS).contains(
-					extensionParts[extensionParts.length - 2])) {
+						extensionParts[extensionParts.length - 2])) {
 				return true;
 			} else {
 				return false;
@@ -491,6 +511,15 @@ public class Message extends AbstractEntity {
 		} else {
 			return null;
 		}
+	}
+
+	public void untie() {
+		this.mNextMessage = null;
+		this.mPreviousMessage = null;
+	}
+
+	public boolean isFileOrImage() {
+		return type == TYPE_FILE || type == TYPE_IMAGE;
 	}
 
 	public class ImageParams {

@@ -16,9 +16,11 @@ import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.Html;
 import android.util.DisplayMetrics;
+import android.util.Log;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -33,16 +35,17 @@ import com.ebdesk.ebconvo.entities.DownloadableFile;
 import com.ebdesk.ebconvo.entities.Message;
 import com.ebdesk.ebconvo.ui.ConversationActivity;
 import com.ebdesk.ebconvo.ui.ManageAccountActivity;
+import com.ebdesk.ebconvo.ui.TimePreference;
 
 public class NotificationService {
 
 	private XmppConnectionService mXmppConnectionService;
 
-	private LinkedHashMap<String, ArrayList<Message>> notifications = new LinkedHashMap<String, ArrayList<Message>>();
+	private final LinkedHashMap<String, ArrayList<Message>> notifications = new LinkedHashMap<>();
 
-	public static int NOTIFICATION_ID = 0x2342;
-	public static int FOREGROUND_NOTIFICATION_ID = 0x8899;
-	public static int ERROR_NOTIFICATION_ID = 0x5678;
+	public static final int NOTIFICATION_ID = 0x2342;
+	public static final int FOREGROUND_NOTIFICATION_ID = 0x8899;
+	public static final int ERROR_NOTIFICATION_ID = 0x5678;
 
 	private Conversation mOpenConversation;
 	private boolean mIsInForeground;
@@ -52,46 +55,61 @@ public class NotificationService {
 		this.mXmppConnectionService = service;
 	}
 
-	public boolean notify(Message message) {
+	public boolean notify(final Message message) {
 		return (message.getStatus() == Message.STATUS_RECEIVED)
-				&& notificationsEnabled()
-				&& !message.getConversation().isMuted()
-				&& (message.getConversation().getMode() == Conversation.MODE_SINGLE
+			&& notificationsEnabled()
+			&& !message.getConversation().isMuted()
+			&& (message.getConversation().getMode() == Conversation.MODE_SINGLE
 					|| conferenceNotificationsEnabled()
 					|| wasHighlightedOrPrivate(message)
-					);
+				 );
 	}
 
 	public boolean notificationsEnabled() {
 		return mXmppConnectionService.getPreferences().getBoolean("show_notification", true);
 	}
 
+	public boolean isQuietHours() {
+		if (!mXmppConnectionService.getPreferences().getBoolean("enable_quiet_hours", false)) {
+			return false;
+		}
+		final long startTime = mXmppConnectionService.getPreferences().getLong("quiet_hours_start", TimePreference.DEFAULT_VALUE) % Config.MILLISECONDS_IN_DAY;
+		final long endTime = mXmppConnectionService.getPreferences().getLong("quiet_hours_end", TimePreference.DEFAULT_VALUE) % Config.MILLISECONDS_IN_DAY;
+		final long nowTime = Calendar.getInstance().getTimeInMillis() % Config.MILLISECONDS_IN_DAY;
+
+		if (endTime < startTime) {
+			return nowTime > startTime || nowTime < endTime;
+		} else {
+			return nowTime > startTime && nowTime < endTime;
+		}
+	}
+
 	public boolean conferenceNotificationsEnabled() {
 		return mXmppConnectionService.getPreferences().getBoolean("always_notify_in_conference", false);
 	}
 
-	public void push(Message message) {
+	public void push(final Message message) {
 		if (!notify(message)) {
 			return;
 		}
-		PowerManager pm = (PowerManager) mXmppConnectionService
-				.getSystemService(Context.POWER_SERVICE);
-		boolean isScreenOn = pm.isScreenOn();
+		final PowerManager pm = (PowerManager) mXmppConnectionService
+			.getSystemService(Context.POWER_SERVICE);
+		final boolean isScreenOn = pm.isScreenOn();
 
 		if (this.mIsInForeground && isScreenOn
 				&& this.mOpenConversation == message.getConversation()) {
 			return;
-		}
+				}
 		synchronized (notifications) {
-			String conversationUuid = message.getConversationUuid();
+			final String conversationUuid = message.getConversationUuid();
 			if (notifications.containsKey(conversationUuid)) {
 				notifications.get(conversationUuid).add(message);
 			} else {
-				ArrayList<Message> mList = new ArrayList<Message>();
+				final ArrayList<Message> mList = new ArrayList<>();
 				mList.add(message);
 				notifications.put(conversationUuid, mList);
 			}
-			Account account = message.getConversation().getAccount();
+			final Account account = message.getConversation().getAccount();
 			updateNotification((!(this.mIsInForeground && this.mOpenConversation == null) || !isScreenOn)
 					&& !account.inGracePeriod()
 					&& !this.inMiniGracePeriod(account));
@@ -106,21 +124,20 @@ public class NotificationService {
 		}
 	}
 
-	public void clear(Conversation conversation) {
+	public void clear(final Conversation conversation) {
 		synchronized (notifications) {
 			notifications.remove(conversation.getUuid());
 			updateNotification(false);
 		}
 	}
 
-	private void updateNotification(boolean notify) {
-		NotificationManager notificationManager = (NotificationManager) mXmppConnectionService
-				.getSystemService(Context.NOTIFICATION_SERVICE);
-		SharedPreferences preferences = mXmppConnectionService.getPreferences();
+	private void updateNotification(final boolean notify) {
+		final NotificationManager notificationManager = (NotificationManager) mXmppConnectionService
+			.getSystemService(Context.NOTIFICATION_SERVICE);
+		final SharedPreferences preferences = mXmppConnectionService.getPreferences();
 
-		String ringtone = preferences.getString("notification_ringtone", null);
-		boolean vibrate = preferences.getBoolean("vibrate_on_notification",
-				true);
+		final String ringtone = preferences.getString("notification_ringtone", null);
+		final boolean vibrate = preferences.getBoolean("vibrate_on_notification", true);
 
 		if (notifications.size() == 0) {
 			notificationManager.cancel(NOTIFICATION_ID);
@@ -128,16 +145,16 @@ public class NotificationService {
 			if (notify) {
 				this.markLastNotification();
 			}
-			Builder mBuilder;
+			final Builder mBuilder;
 			if (notifications.size() == 1) {
 				mBuilder = buildSingleConversations(notify);
 			} else {
 				mBuilder = buildMultipleConversation();
 			}
-			if (notify) {
+			if (notify && !isQuietHours()) {
 				if (vibrate) {
-					int dat = 70;
-					long[] pattern = {0, 3 * dat, dat, dat};
+					final int dat = 70;
+					final long[] pattern = {0, 3 * dat, dat, dat};
 					mBuilder.setVibrate(pattern);
 				}
 				if (ringtone != null) {
@@ -147,27 +164,27 @@ public class NotificationService {
 			mBuilder.setSmallIcon(R.drawable.ic_notification);
 			mBuilder.setDeleteIntent(createDeleteIntent());
 			mBuilder.setLights(0xffffffff, 2000, 4000);
-			Notification notification = mBuilder.build();
+			final Notification notification = mBuilder.build();
 			notificationManager.notify(NOTIFICATION_ID, notification);
 		}
 	}
 
 	private Builder buildMultipleConversation() {
-		Builder mBuilder = new NotificationCompat.Builder(
+		final Builder mBuilder = new NotificationCompat.Builder(
 				mXmppConnectionService);
 		NotificationCompat.InboxStyle style = new NotificationCompat.InboxStyle();
 		style.setBigContentTitle(notifications.size()
 				+ " "
 				+ mXmppConnectionService
 				.getString(R.string.unread_conversations));
-		StringBuilder names = new StringBuilder();
+		final StringBuilder names = new StringBuilder();
 		Conversation conversation = null;
 		for (ArrayList<Message> messages : notifications.values()) {
 			if (messages.size() > 0) {
 				conversation = messages.get(0).getConversation();
 				String name = conversation.getName();
 				style.addLine(Html.fromHtml("<b>" + name + "</b> "
-						+ getReadableBody(messages.get(0))));
+							+ getReadableBody(messages.get(0))));
 				names.append(name);
 				names.append(", ");
 			}
@@ -183,46 +200,45 @@ public class NotificationService {
 		mBuilder.setStyle(style);
 		if (conversation != null) {
 			mBuilder.setContentIntent(createContentIntent(conversation
-					.getUuid()));
+						.getUuid()));
 		}
 		return mBuilder;
 	}
 
-	private Builder buildSingleConversations(boolean notify) {
-		Builder mBuilder = new NotificationCompat.Builder(
+	private Builder buildSingleConversations(final boolean notify) {
+		final Builder mBuilder = new NotificationCompat.Builder(
 				mXmppConnectionService);
-		ArrayList<Message> messages = notifications.values().iterator().next();
+		final ArrayList<Message> messages = notifications.values().iterator().next();
 		if (messages.size() >= 1) {
-			Conversation conversation = messages.get(0).getConversation();
+			final Conversation conversation = messages.get(0).getConversation();
 			mBuilder.setLargeIcon(mXmppConnectionService.getAvatarService()
 					.get(conversation, getPixel(64)));
 			mBuilder.setContentTitle(conversation.getName());
-			Message message;
+			final Message message;
 			if ((message = getImage(messages)) != null) {
 				modifyForImage(mBuilder, message, messages, notify);
 			} else {
 				modifyForTextOnly(mBuilder, messages, notify);
 			}
 			mBuilder.setContentIntent(createContentIntent(conversation
-					.getUuid()));
+						.getUuid()));
 		}
 		return mBuilder;
-
 	}
 
-	private void modifyForImage(Builder builder, Message message,
-								ArrayList<Message> messages, boolean notify) {
+	private void modifyForImage(final Builder builder, final Message message,
+			final ArrayList<Message> messages, final boolean notify) {
 		try {
-			Bitmap bitmap = mXmppConnectionService.getFileBackend()
-					.getThumbnail(message, getPixel(288), false);
-			ArrayList<Message> tmp = new ArrayList<Message>();
-			for (Message msg : messages) {
+			final Bitmap bitmap = mXmppConnectionService.getFileBackend()
+				.getThumbnail(message, getPixel(288), false);
+			final ArrayList<Message> tmp = new ArrayList<>();
+			for (final Message msg : messages) {
 				if (msg.getType() == Message.TYPE_TEXT
 						&& msg.getDownloadable() == null) {
 					tmp.add(msg);
-				}
+						}
 			}
-			BigPictureStyle bigPictureStyle = new NotificationCompat.BigPictureStyle();
+			final BigPictureStyle bigPictureStyle = new NotificationCompat.BigPictureStyle();
 			bigPictureStyle.bigPicture(bitmap);
 			if (tmp.size() > 0) {
 				bigPictureStyle.setSummaryText(getMergedBodies(tmp));
@@ -231,13 +247,13 @@ public class NotificationService {
 				builder.setContentText(mXmppConnectionService.getString(R.string.image_file));
 			}
 			builder.setStyle(bigPictureStyle);
-		} catch (FileNotFoundException e) {
+		} catch (final FileNotFoundException e) {
 			modifyForTextOnly(builder, messages, notify);
 		}
 	}
 
-	private void modifyForTextOnly(Builder builder,
-								   ArrayList<Message> messages, boolean notify) {
+	private void modifyForTextOnly(final Builder builder,
+			final ArrayList<Message> messages, final boolean notify) {
 		builder.setStyle(new NotificationCompat.BigTextStyle()
 				.bigText(getMergedBodies(messages)));
 		builder.setContentText(getReadableBody(messages.get(0)));
@@ -246,19 +262,19 @@ public class NotificationService {
 		}
 	}
 
-	private Message getImage(ArrayList<Message> messages) {
-		for (Message message : messages) {
+	private Message getImage(final ArrayList<Message> messages) {
+		for (final Message message : messages) {
 			if (message.getType() == Message.TYPE_IMAGE
 					&& message.getDownloadable() == null
 					&& message.getEncryption() != Message.ENCRYPTION_PGP) {
 				return message;
-			}
+					}
 		}
 		return null;
 	}
 
-	private String getMergedBodies(ArrayList<Message> messages) {
-		StringBuilder text = new StringBuilder();
+	private String getMergedBodies(final ArrayList<Message> messages) {
+		final StringBuilder text = new StringBuilder();
 		for (int i = 0; i < messages.size(); ++i) {
 			text.append(getReadableBody(messages.get(i)));
 			if (i != messages.size() - 1) {
@@ -268,10 +284,10 @@ public class NotificationService {
 		return text.toString();
 	}
 
-	private String getReadableBody(Message message) {
+	private String getReadableBody(final Message message) {
 		if (message.getDownloadable() != null
 				&& (message.getDownloadable().getStatus() == Downloadable.STATUS_OFFER || message
-				.getDownloadable().getStatus() == Downloadable.STATUS_OFFER_CHECK_FILESIZE)) {
+					.getDownloadable().getStatus() == Downloadable.STATUS_OFFER_CHECK_FILESIZE)) {
 			if (message.getType() == Message.TYPE_FILE) {
 				return mXmppConnectionService.getString(R.string.file_offered_for_download);
 			} else {
@@ -283,27 +299,27 @@ public class NotificationService {
 					R.string.encrypted_message_received).toString();
 		} else if (message.getEncryption() == Message.ENCRYPTION_DECRYPTION_FAILED) {
 			return mXmppConnectionService.getText(R.string.decryption_failed)
-					.toString();
+				.toString();
 		} else if (message.getType() == Message.TYPE_FILE) {
 			DownloadableFile file = mXmppConnectionService.getFileBackend().getFile(message);
 			return mXmppConnectionService.getString(R.string.file,file.getMimeType());
 		} else if (message.getType() == Message.TYPE_IMAGE) {
 			return mXmppConnectionService.getText(R.string.image_file)
-					.toString();
+				.toString();
 		} else {
 			return message.getBody().trim();
 		}
 	}
 
-	private PendingIntent createContentIntent(String conversationUuid) {
-		TaskStackBuilder stackBuilder = TaskStackBuilder
-				.create(mXmppConnectionService);
+	private PendingIntent createContentIntent(final String conversationUuid) {
+		final TaskStackBuilder stackBuilder = TaskStackBuilder
+			.create(mXmppConnectionService);
 		stackBuilder.addParentStack(ConversationActivity.class);
 
-		Intent viewConversationIntent = new Intent(mXmppConnectionService,
+		final Intent viewConversationIntent = new Intent(mXmppConnectionService,
 				ConversationActivity.class);
 		viewConversationIntent.setAction(Intent.ACTION_VIEW);
-		if (conversationUuid!=null) {
+		if (conversationUuid != null) {
 			viewConversationIntent.putExtra(ConversationActivity.CONVERSATION,
 					conversationUuid);
 			viewConversationIntent.setType(ConversationActivity.VIEW_CONVERSATION);
@@ -311,36 +327,34 @@ public class NotificationService {
 
 		stackBuilder.addNextIntent(viewConversationIntent);
 
-		PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
-				PendingIntent.FLAG_UPDATE_CURRENT);
-		return resultPendingIntent;
+		return stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
 	}
 
 	private PendingIntent createDeleteIntent() {
-		Intent intent = new Intent(mXmppConnectionService,
+		final Intent intent = new Intent(mXmppConnectionService,
 				XmppConnectionService.class);
 		intent.setAction(XmppConnectionService.ACTION_CLEAR_NOTIFICATION);
 		return PendingIntent.getService(mXmppConnectionService, 0, intent, 0);
 	}
 
 	private PendingIntent createDisableForeground() {
-		Intent intent = new Intent(mXmppConnectionService,
+		final Intent intent = new Intent(mXmppConnectionService,
 				XmppConnectionService.class);
 		intent.setAction(XmppConnectionService.ACTION_DISABLE_FOREGROUND);
 		return PendingIntent.getService(mXmppConnectionService, 0, intent, 0);
 	}
 
-	private boolean wasHighlightedOrPrivate(Message message) {
-		String nick = message.getConversation().getMucOptions().getActualNick();
-		Pattern highlight = generateNickHighlightPattern(nick);
+	private boolean wasHighlightedOrPrivate(final Message message) {
+		final String nick = message.getConversation().getMucOptions().getActualNick();
+		final Pattern highlight = generateNickHighlightPattern(nick);
 		if (message.getBody() == null || nick == null) {
 			return false;
 		}
-		Matcher m = highlight.matcher(message.getBody());
+		final Matcher m = highlight.matcher(message.getBody());
 		return (m.find() || message.getType() == Message.TYPE_PRIVATE);
 	}
 
-	private static Pattern generateNickHighlightPattern(String nick) {
+	private static Pattern generateNickHighlightPattern(final String nick) {
 		// We expect a word boundary, i.e. space or start of string, followed by
 		// the
 		// nick (matched in case-insensitive manner), followed by optional
@@ -350,17 +364,20 @@ public class NotificationService {
 				Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 	}
 
-	public void setOpenConversation(Conversation conversation) {
+	public void setOpenConversation(final Conversation conversation) {
 		this.mOpenConversation = conversation;
 	}
 
-	public void setIsInForeground(boolean foreground) {
+	public void setIsInForeground(final boolean foreground) {
+		if (foreground != this.mIsInForeground) {
+			Log.d(Config.LOGTAG,"setIsInForeground("+Boolean.toString(foreground)+")");
+		}
 		this.mIsInForeground = foreground;
 	}
 
-	private int getPixel(int dp) {
-		DisplayMetrics metrics = mXmppConnectionService.getResources()
-				.getDisplayMetrics();
+	private int getPixel(final int dp) {
+		final DisplayMetrics metrics = mXmppConnectionService.getResources()
+			.getDisplayMetrics();
 		return ((int) (dp * metrics.density));
 	}
 
@@ -368,14 +385,14 @@ public class NotificationService {
 		this.mLastNotification = SystemClock.elapsedRealtime();
 	}
 
-	private boolean inMiniGracePeriod(Account account) {
-		int miniGrace = account.getStatus() == Account.State.ONLINE ? Config.MINI_GRACE_PERIOD
-				: Config.MINI_GRACE_PERIOD * 2;
+	private boolean inMiniGracePeriod(final Account account) {
+		final int miniGrace = account.getStatus() == Account.State.ONLINE ? Config.MINI_GRACE_PERIOD
+			: Config.MINI_GRACE_PERIOD * 2;
 		return SystemClock.elapsedRealtime() < (this.mLastNotification + miniGrace);
 	}
 
 	public Notification createForegroundNotification() {
-		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(mXmppConnectionService);
+		final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(mXmppConnectionService);
 		mBuilder.setSmallIcon(R.drawable.ic_stat_communication_import_export);
 		mBuilder.setContentTitle(mXmppConnectionService.getString(R.string.conversations_foreground_service));
 		mBuilder.setContentText(mXmppConnectionService.getString(R.string.touch_to_disable));
@@ -386,14 +403,14 @@ public class NotificationService {
 	}
 
 	public void updateErrorNotification() {
-		NotificationManager mNotificationManager = (NotificationManager) mXmppConnectionService.getSystemService(Context.NOTIFICATION_SERVICE);
-		List<Account> errors = new ArrayList<>();
-		for (Account account : mXmppConnectionService.getAccounts()) {
+		final NotificationManager mNotificationManager = (NotificationManager) mXmppConnectionService.getSystemService(Context.NOTIFICATION_SERVICE);
+		final List<Account> errors = new ArrayList<>();
+		for (final Account account : mXmppConnectionService.getAccounts()) {
 			if (account.hasErrorStatus()) {
 				errors.add(account);
 			}
 		}
-		NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(mXmppConnectionService);
+		final NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(mXmppConnectionService);
 		if (errors.size() == 0) {
 			mNotificationManager.cancel(ERROR_NOTIFICATION_ID);
 			return;
@@ -410,13 +427,12 @@ public class NotificationService {
 		TaskStackBuilder stackBuilder = TaskStackBuilder.create(mXmppConnectionService);
 		stackBuilder.addParentStack(ConversationActivity.class);
 
-		Intent manageAccountsIntent = new Intent(mXmppConnectionService,ManageAccountActivity.class);
+		final Intent manageAccountsIntent = new Intent(mXmppConnectionService,ManageAccountActivity.class);
 		stackBuilder.addNextIntent(manageAccountsIntent);
 
-		PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
+		final PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
 
 		mBuilder.setContentIntent(resultPendingIntent);
-		Notification notification = mBuilder.build();
-		mNotificationManager.notify(ERROR_NOTIFICATION_ID, notification);
+		mNotificationManager.notify(ERROR_NOTIFICATION_ID, mBuilder.build());
 	}
 }

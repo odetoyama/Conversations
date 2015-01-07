@@ -46,8 +46,8 @@ android {
 	defaultConfig {
 		minSdkVersion 14
 		targetSdkVersion 19
-		versionCode 40
-		versionName "0.9.3"
+		versionCode 41
+		versionName "0.10"
 	}
 
 	compileOptions {
@@ -81,20 +81,17 @@ android {
 		buildTypes.release.signingConfig = null
 	}
 
-/*	buildTypes {
-		applicationVariants.all { variant ->
-			def fileName = variant.packageApplication.outputFile.name.replace(".apk",
-					"-" + defaultConfig.versionName + ".apk")
-				variant.packageApplication.outputFile = new
-				File(variant.packageApplication.outputFile.parent, fileName)
-				if (variant.zipAlign) {
-					if (variant.name.equals('release')) {
-						variant.outputFile = new File(variant.outputFile.parent,
-								rootProject.name + "-" + defaultConfig.versionName + ".apk")
-					}
-				}
-		}
-	}*/
+    applicationVariants.all { variant ->
+        if (variant.name.equals('release')) {
+            variant.outputs.each { output ->
+                if (output.zipAlign != null) {
+                    output.zipAlign.outputFile = new File(output.outputFile.parent, rootProject.name + "-${variant.versionName}.apk")
+                }
+                output.packageApplication.outputFile = new File(output.outputFile.parent, output.packageApplication.outputFile.name
+                        .replace(".apk", "-${variant.versionName}.apk"))
+            }
+        }
+    }
 
 	lintOptions {
 		disable 'MissingTranslation', 'InvalidPackage'

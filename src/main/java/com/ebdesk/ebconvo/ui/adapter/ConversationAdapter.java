@@ -2,7 +2,6 @@ package com.ebdesk.ebconvo.ui.adapter;
 
 import java.util.List;
 
-import com.ebdesk.ebconvo.Config;
 import com.ebdesk.ebconvo.R;
 import com.ebdesk.ebconvo.entities.Conversation;
 import com.ebdesk.ebconvo.entities.Downloadable;
@@ -36,7 +35,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation> {
 	public View getView(int position, View view, ViewGroup parent) {
 		if (view == null) {
 			LayoutInflater inflater = (LayoutInflater) activity
-					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 			view = inflater.inflate(R.layout.conversation_list_row,
 					parent, false);
 		}
@@ -55,19 +54,19 @@ public class ConversationAdapter extends ArrayAdapter<Conversation> {
 			}
 		}
 		TextView convName = (TextView) view
-				.findViewById(R.id.conversation_name);
+			.findViewById(R.id.conversation_name);
 		if (conversation.getMode() == Conversation.MODE_SINGLE
 				|| activity.useSubjectToIdentifyConference()) {
 			convName.setText(conversation.getName());
 		} else {
-			convName.setText(conversation.getContactJid().toBareJid().toString());
+			convName.setText(conversation.getJid().toBareJid().toString());
 		}
 		TextView mLastMessage = (TextView) view
-				.findViewById(R.id.conversation_lastmsg);
+			.findViewById(R.id.conversation_lastmsg);
 		TextView mTimestamp = (TextView) view
-				.findViewById(R.id.conversation_lastupdate);
+			.findViewById(R.id.conversation_lastupdate);
 		ImageView imagePreview = (ImageView) view
-				.findViewById(R.id.conversation_lastimage);
+			.findViewById(R.id.conversation_lastimage);
 
 		Message message = conversation.getLatestMessage();
 
@@ -140,10 +139,7 @@ public class ConversationAdapter extends ArrayAdapter<Conversation> {
 		} else {
 			if ((message.getEncryption() != Message.ENCRYPTION_PGP)
 					&& (message.getEncryption() != Message.ENCRYPTION_DECRYPTION_FAILED)) {
-				String body = Config.PARSE_EMOTICONS ? UIHelper
-						.transformAsciiEmoticons(message.getBody()) : message
-						.getBody();
-				mLastMessage.setText(body);
+				mLastMessage.setText(message.getBody());
 			} else {
 				mLastMessage.setText(R.string.encrypted_message_received);
 			}
@@ -156,12 +152,12 @@ public class ConversationAdapter extends ArrayAdapter<Conversation> {
 			imagePreview.setVisibility(View.GONE);
 		}
 		mTimestamp.setText(UIHelper.readableTimeDifference(getContext(),
-				conversation.getLatestMessage().getTimeSent()));
+					conversation.getLatestMessage().getTimeSent()));
 
 		ImageView profilePicture = (ImageView) view
-				.findViewById(R.id.conversation_image);
+			.findViewById(R.id.conversation_image);
 		profilePicture.setImageBitmap(activity.avatarService().get(
-				conversation, activity.getPixel(56)));
+					conversation, activity.getPixel(56)));
 
 		return view;
 	}

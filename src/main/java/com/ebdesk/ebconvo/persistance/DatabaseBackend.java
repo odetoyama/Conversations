@@ -22,7 +22,7 @@ public class DatabaseBackend extends SQLiteOpenHelper {
 	private static DatabaseBackend instance = null;
 
 	private static final String DATABASE_NAME = "history";
-	private static final int DATABASE_VERSION = 11;
+	private static final int DATABASE_VERSION = 13;
 
 	private static String CREATE_CONTATCS_STATEMENT = "create table "
 			+ Contact.TABLENAME + "(" + Contact.ACCOUNT + " TEXT, "
@@ -65,6 +65,7 @@ public class DatabaseBackend extends SQLiteOpenHelper {
 				+ Message.BODY + " TEXT, " + Message.ENCRYPTION + " NUMBER, "
 				+ Message.STATUS + " NUMBER," + Message.TYPE + " NUMBER, "
 				+ Message.RELATIVE_FILE_PATH + " TEXT, "
+				+ Message.SERVER_MSG_ID + " TEXT, "
 				+ Message.REMOTE_MSG_ID + " TEXT, FOREIGN KEY("
 				+ Message.CONVERSATION + ") REFERENCES "
 				+ Conversation.TABLENAME + "(" + Conversation.UUID
@@ -118,6 +119,14 @@ public class DatabaseBackend extends SQLiteOpenHelper {
 		if (oldVersion < 11 && newVersion >= 11) {
 			db.execSQL("ALTER TABLE " + Contact.TABLENAME + " ADD COLUMN "
 					+ Contact.GROUPS + " TEXT");
+			db.execSQL("delete from "+Contact.TABLENAME);
+			db.execSQL("update "+Account.TABLENAME+" set "+Account.ROSTERVERSION+" = NULL");
+		}
+		if (oldVersion < 12 && newVersion >= 12) {
+			db.execSQL("ALTER TABLE " + Message.TABLENAME + " ADD COLUMN "
+					+ Message.SERVER_MSG_ID + " TEXT");
+		}
+		if (oldVersion < 13 && newVersion >= 13) {
 			db.execSQL("delete from "+Contact.TABLENAME);
 			db.execSQL("update "+Account.TABLENAME+" set "+Account.ROSTERVERSION+" = NULL");
 		}
@@ -223,9 +232,9 @@ public class DatabaseBackend extends SQLiteOpenHelper {
 		return conversation;
 	}
 
-	public void updateConversation(Conversation conversation) {
-		SQLiteDatabase db = this.getWritableDatabase();
-		String[] args = { conversation.getUuid() };
+	public void updateConversation(final Conversation conversation) {
+		final SQLiteDatabase db = this.getWritableDatabase();
+		final String[] args = { conversation.getUuid() };
 		db.update(Conversation.TABLENAME, conversation.getContentValues(),
 				Conversation.UUID + "=?", args);
 	}

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">eBtalk</string>
     <string name="action_settings">Nastavení</string>
     <string name="action_add">Nová konverzace</string>
     <string name="action_accounts">Nastavení účtů</string>
@@ -41,6 +40,7 @@
     <string name="invite_contact">Pozvat kontakt</string>
     <string name="contacts">Kontakty</string>
     <string name="cancel">Zrušit</string>
+    <string name="set">Nastavit</string>
     <string name="add">Přidat</string>
     <string name="edit">Upravit</string>
     <string name="delete">Smazat</string>
@@ -58,7 +58,7 @@
     <string name="add_contact">Přidat kontakt</string>
     <string name="send_failed">doručení selhalo</string>
     <string name="send_rejected">zamítnuto</string>
-    <string name="receiving_image">Přijímám obrázek. Chvíli strpení…</string>
+    <string name="receiving_image">Přijímám obrázek (%1$d%%)</string>
     <string name="preparing_image">Připravuji obrázek na přenos</string>
     <string name="action_clear_history">Smazat historii</string>
     <string name="clear_conversation_history">Smaže historii konverzací</string>
@@ -258,6 +258,11 @@
     <string name="pref_expert_options_summary">S tímto zacházejte velmi opatrně</string>
     <string name="title_activity_about">O aplikaci Conversations</string>
     <string name="pref_about_conversations_summary">Informace o sestavení a licenci</string>
+    <string name="title_pref_quiet_hours">Tichý režim</string>
+    <string name="title_pref_quiet_hours_start_time">Odkdy</string>
+    <string name="title_pref_quiet_hours_end_time">Dokdy</string>
+    <string name="title_pref_enable_quiet_hours">Povolit tichý režim</string>
+    <string name="pref_quiet_hours_summary">Upozornění budou během tichého režimu ztlumena</string>
     <string name="pref_use_larger_font">Zvětšit písmo</string>
     <string name="pref_use_larger_font_summary">Používat v celé aplikaci větší velikost písma</string>
     <string name="pref_use_send_button_to_indicate_status">Tlačítko pro odeslání zobrazuje stav</string>
@@ -336,4 +341,6 @@
     <string name="reset">Reset</string>
     <string name="account_image_description">Avatar účtu</string>
     <string name="copy_otr_clipboard_description">Zkopírovat otisk OTR do schránky</string>
+    <string name="fetching_history_from_server">Načíst historii ze serveru</string>
+    <string name="no_more_history_on_server">Na serveru není žádná další historie</string>
 </resources>

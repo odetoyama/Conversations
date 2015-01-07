@@ -4,52 +4,56 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.ebdesk.ebconvo.entities.Account;
+import com.ebdesk.ebconvo.services.MessageArchiveService;
 import com.ebdesk.ebconvo.services.XmppConnectionService;
+import com.ebdesk.ebconvo.utils.Xmlns;
 import com.ebdesk.ebconvo.xml.Element;
+import com.ebdesk.ebconvo.xmpp.forms.Data;
 import com.ebdesk.ebconvo.xmpp.jid.Jid;
 import com.ebdesk.ebconvo.xmpp.pep.Avatar;
 import com.ebdesk.ebconvo.xmpp.stanzas.IqPacket;
 
 public class IqGenerator extends AbstractGenerator {
 
-	public IqGenerator(XmppConnectionService service) {
+	public IqGenerator(final XmppConnectionService service) {
 		super(service);
 	}
 
-	public IqPacket discoResponse(IqPacket request) {
-		IqPacket packet = new IqPacket(IqPacket.TYPE_RESULT);
+	public IqPacket discoResponse(final IqPacket request) {
+		final IqPacket packet = new IqPacket(IqPacket.TYPE_RESULT);
 		packet.setId(request.getId());
-        packet.setTo(request.getFrom());
-		Element query = packet.addChild("query",
+		packet.setTo(request.getFrom());
+		final Element query = packet.addChild("query",
 				"http://jabber.org/protocol/disco#info");
 		query.setAttribute("node", request.query().getAttribute("node"));
-		Element identity = query.addChild("identity");
+		final Element identity = query.addChild("identity");
 		identity.setAttribute("category", "client");
 		identity.setAttribute("type", this.IDENTITY_TYPE);
 		identity.setAttribute("name", IDENTITY_NAME);
-		List<String> features = Arrays.asList(FEATURES);
+		final List<String> features = Arrays.asList(FEATURES);
 		Collections.sort(features);
-		for (String feature : features) {
+		for (final String feature : features) {
 			query.addChild("feature").setAttribute("var", feature);
 		}
 		return packet;
 	}
 
-	protected IqPacket publish(String node, Element item) {
-		IqPacket packet = new IqPacket(IqPacket.TYPE_SET);
-		Element pubsub = packet.addChild("pubsub",
+	protected IqPacket publish(final String node, final Element item) {
+		final IqPacket packet = new IqPacket(IqPacket.TYPE_SET);
+		final Element pubsub = packet.addChild("pubsub",
 				"http://jabber.org/protocol/pubsub");
-		Element publish = pubsub.addChild("publish");
+		final Element publish = pubsub.addChild("publish");
 		publish.setAttribute("node", node);
 		publish.addChild(item);
 		return packet;
 	}
 
 	protected IqPacket retrieve(String node, Element item) {
-		IqPacket packet = new IqPacket(IqPacket.TYPE_GET);
-		Element pubsub = packet.addChild("pubsub",
+		final IqPacket packet = new IqPacket(IqPacket.TYPE_GET);
+		final Element pubsub = packet.addChild("pubsub",
 				"http://jabber.org/protocol/pubsub");
-		Element items = pubsub.addChild("items");
+		final Element items = pubsub.addChild("items");
 		items.setAttribute("node", node);
 		if (item != null) {
 			items.addChild(item);
@@ -58,19 +62,19 @@ public class IqGenerator extends AbstractGenerator {
 	}
 
 	public IqPacket publishAvatar(Avatar avatar) {
-		Element item = new Element("item");
+		final Element item = new Element("item");
 		item.setAttribute("id", avatar.sha1sum);
-		Element data = item.addChild("data", "urn:xmpp:avatar:data");
+		final Element data = item.addChild("data", "urn:xmpp:avatar:data");
 		data.setContent(avatar.image);
 		return publish("urn:xmpp:avatar:data", item);
 	}
 
-	public IqPacket publishAvatarMetadata(Avatar avatar) {
-		Element item = new Element("item");
+	public IqPacket publishAvatarMetadata(final Avatar avatar) {
+		final Element item = new Element("item");
 		item.setAttribute("id", avatar.sha1sum);
-		Element metadata = item
-				.addChild("metadata", "urn:xmpp:avatar:metadata");
-		Element info = metadata.addChild("info");
+		final Element metadata = item
+			.addChild("metadata", "urn:xmpp:avatar:metadata");
+		final Element info = metadata.addChild("info");
 		info.setAttribute("bytes", avatar.size);
 		info.setAttribute("id", avatar.sha1sum);
 		info.setAttribute("height", avatar.height);
@@ -79,10 +83,10 @@ public class IqGenerator extends AbstractGenerator {
 		return publish("urn:xmpp:avatar:metadata", item);
 	}
 
-	public IqPacket retrieveAvatar(Avatar avatar) {
-		Element item = new Element("item");
+	public IqPacket retrieveAvatar(final Avatar avatar) {
+		final Element item = new Element("item");
 		item.setAttribute("id", avatar.sha1sum);
-		IqPacket packet = retrieve("urn:xmpp:avatar:data", item);
+		final IqPacket packet = retrieve("urn:xmpp:avatar:data", item);
 		packet.setTo(avatar.owner);
 		return packet;
 	}
@@ -92,6 +96,56 @@ public class IqGenerator extends AbstractGenerator {
 		if (to != null) {
 			packet.setTo(to);
 		}
+		return packet;
+	}
+
+	public IqPacket queryMessageArchiveManagement(final MessageArchiveService.Query mam) {
+		final IqPacket packet = new IqPacket(IqPacket.TYPE_SET);
+		final Element query = packet.query("urn:xmpp:mam:0");
+		query.setAttribute("queryid",mam.getQueryId());
+		final Data data = new Data();
+		data.setFormType("urn:xmpp:mam:0");
+		if (mam.getWith()!=null) {
+			data.put("with", mam.getWith().toString());
+		}
+		data.put("start",getTimestamp(mam.getStart()));
+		data.put("end",getTimestamp(mam.getEnd()));
+		query.addChild(data);
+		if (mam.getPagingOrder() == MessageArchiveService.PagingOrder.REVERSE) {
+			query.addChild("set", "http://jabber.org/protocol/rsm").addChild("before").setContent(mam.getReference());
+		} else if (mam.getReference() != null) {
+			query.addChild("set", "http://jabber.org/protocol/rsm").addChild("after").setContent(mam.getReference());
+		}
+		return packet;
+	}
+	public IqPacket generateGetBlockList() {
+		final IqPacket iq = new IqPacket(IqPacket.TYPE_GET);
+		iq.addChild("blocklist", Xmlns.BLOCKING);
+
+		return iq;
+	}
+
+	public IqPacket generateSetBlockRequest(final Jid jid) {
+		final IqPacket iq = new IqPacket(IqPacket.TYPE_SET);
+		final Element block = iq.addChild("block", Xmlns.BLOCKING);
+		block.addChild("item").setAttribute("jid", jid.toBareJid().toString());
+		return iq;
+	}
+
+	public IqPacket generateSetUnblockRequest(final Jid jid) {
+		final IqPacket iq = new IqPacket(IqPacket.TYPE_SET);
+		final Element block = iq.addChild("unblock", Xmlns.BLOCKING);
+		block.addChild("item").setAttribute("jid", jid.toBareJid().toString());
+		return iq;
+	}
+
+	public IqPacket generateSetPassword(final Account account, final String newPassword) {
+		final IqPacket packet = new IqPacket(IqPacket.TYPE_SET);
+		packet.setTo(account.getServer());
+		final Element query = packet.addChild("query", Xmlns.REGISTER);
+		final Jid jid = account.getJid();
+		query.addChild("username").setContent(jid.getLocalpart());
+		query.addChild("password").setContent(newPassword);
 		return packet;
 	}
 }

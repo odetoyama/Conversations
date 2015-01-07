@@ -1,17 +1,5 @@
 package com.ebdesk.ebconvo.ui;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.ebdesk.ebconvo.Config;
-import com.ebdesk.ebconvo.R;
-import com.ebdesk.ebconvo.entities.Account;
-import com.ebdesk.ebconvo.entities.Conversation;
-import com.ebdesk.ebconvo.entities.Message;
-import com.ebdesk.ebconvo.ui.adapter.ConversationAdapter;
-import com.ebdesk.ebconvo.xmpp.jid.InvalidJidException;
-import com.ebdesk.ebconvo.xmpp.jid.Jid;
-
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.Uri;
@@ -25,10 +13,27 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.ebdesk.ebconvo.Config;
+import com.ebdesk.ebconvo.R;
+import com.ebdesk.ebconvo.entities.Account;
+import com.ebdesk.ebconvo.entities.Conversation;
+import com.ebdesk.ebconvo.entities.Message;
+import com.ebdesk.ebconvo.ui.adapter.ConversationAdapter;
+import com.ebdesk.ebconvo.xmpp.jid.InvalidJidException;
+import com.ebdesk.ebconvo.xmpp.jid.Jid;
+
 public class ShareWithActivity extends XmppActivity {
 
 	private class Share {
 		public Uri uri;
+		public boolean image;
 		public String account;
 		public String contact;
 		public String text;
@@ -38,9 +43,9 @@ public class ShareWithActivity extends XmppActivity {
 
 	private static final int REQUEST_START_NEW_CONVERSATION = 0x0501;
 	private ListView mListView;
-	private List<Conversation> mConversations = new ArrayList<Conversation>();
+	private List<Conversation> mConversations = new ArrayList<>();
 
-	private UiCallback<Message> attachImageCallback = new UiCallback<Message>() {
+	private UiCallback<Message> attachFileCallback = new UiCallback<Message>() {
 
 		@Override
 		public void userInputRequried(PendingIntent pi, Message object) {
@@ -78,11 +83,12 @@ public class ShareWithActivity extends XmppActivity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-
 		super.onCreate(savedInstanceState);
 
-		getActionBar().setDisplayHomeAsUpEnabled(false);
-		getActionBar().setHomeButtonEnabled(false);
+		if (getActionBar() != null) {
+			getActionBar().setDisplayHomeAsUpEnabled(false);
+			getActionBar().setHomeButtonEnabled(false);
+		}
 
 		setContentView(R.layout.share_with);
 		setTitle(getString(R.string.title_activity_sharewith));
@@ -114,10 +120,10 @@ public class ShareWithActivity extends XmppActivity {
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
+	public boolean onOptionsItemSelected(final MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.action_add:
-			Intent intent = new Intent(getApplicationContext(),
+			final Intent intent = new Intent(getApplicationContext(),
 					ChooseContactActivity.class);
 			startActivityForResult(intent, REQUEST_START_NEW_CONVERSATION);
 			return true;
@@ -127,16 +133,20 @@ public class ShareWithActivity extends XmppActivity {
 
 	@Override
 	public void onStart() {
-		if (getIntent().getType() != null
-				&& getIntent().getType().startsWith("image/")) {
-			this.share.uri = (Uri) getIntent().getParcelableExtra(
-					Intent.EXTRA_STREAM);
+		final String type = getIntent().getType();
+		if (type != null && !type.startsWith("text/")) {
+			this.share.uri = (Uri) getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+			try {
+				this.share.image = type.startsWith("image/")
+						|| URLConnection.guessContentTypeFromName(this.share.uri.toString()).startsWith("image/");
+			} catch (final StringIndexOutOfBoundsException ignored) {
+				this.share.image = false;
+			}
 		} else {
 			this.share.text = getIntent().getStringExtra(Intent.EXTRA_TEXT);
 		}
 		if (xmppConnectionServiceBound) {
-			xmppConnectionService.populateWithOrderedConversations(
-					mConversations, this.share.uri == null);
+			xmppConnectionService.populateWithOrderedConversations(mConversations, this.share.uri == null);
 		}
 		super.onStart();
 	}
@@ -177,12 +187,21 @@ public class ShareWithActivity extends XmppActivity {
 			selectPresence(conversation, new OnPresenceSelected() {
 				@Override
 				public void onPresenceSelected() {
-					Toast.makeText(getApplicationContext(),
-							getText(R.string.preparing_image),
-							Toast.LENGTH_LONG).show();
-					ShareWithActivity.this.xmppConnectionService
+					if (share.image) {
+						Toast.makeText(getApplicationContext(),
+								getText(R.string.preparing_image),
+								Toast.LENGTH_LONG).show();
+						ShareWithActivity.this.xmppConnectionService
 							.attachImageToConversation(conversation, share.uri,
-									attachImageCallback);
+									attachFileCallback);
+					} else {
+						Toast.makeText(getApplicationContext(),
+								getText(R.string.preparing_file),
+								Toast.LENGTH_LONG).show();
+						ShareWithActivity.this.xmppConnectionService
+							.attachFileToConversation(conversation, share.uri,
+									attachFileCallback);
+					}
 					switchToConversation(conversation, null, true);
 					finish();
 				}

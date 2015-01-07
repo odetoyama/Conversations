@@ -28,7 +28,6 @@ import android.widget.TextView;
 import org.openintents.openpgp.util.OpenPgpUtils;
 
 import java.util.List;
-
 import com.ebdesk.ebconvo.R;
 import com.ebdesk.ebconvo.crypto.PgpEngine;
 import com.ebdesk.ebconvo.entities.Account;
@@ -36,11 +35,13 @@ import com.ebdesk.ebconvo.entities.Contact;
 import com.ebdesk.ebconvo.entities.ListItem;
 import com.ebdesk.ebconvo.services.XmppConnectionService.OnAccountUpdate;
 import com.ebdesk.ebconvo.services.XmppConnectionService.OnRosterUpdate;
+import com.ebdesk.ebconvo.utils.CryptoHelper;
 import com.ebdesk.ebconvo.utils.UIHelper;
+import com.ebdesk.ebconvo.xmpp.OnUpdateBlocklist;
 import com.ebdesk.ebconvo.xmpp.jid.InvalidJidException;
 import com.ebdesk.ebconvo.xmpp.jid.Jid;
 
-public class ContactDetailsActivity extends XmppActivity implements OnAccountUpdate, OnRosterUpdate {
+public class ContactDetailsActivity extends XmppActivity implements OnAccountUpdate, OnRosterUpdate, OnUpdateBlocklist {
 	public static final String ACTION_VIEW_CONTACT = "view_contact";
 
 	private Contact contact;
@@ -49,7 +50,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 		@Override
 		public void onClick(DialogInterface dialog, int which) {
 			ContactDetailsActivity.this.xmppConnectionService
-					.deleteContactOnServer(contact);
+				.deleteContactOnServer(contact);
 			ContactDetailsActivity.this.finish();
 		}
 	};
@@ -57,14 +58,14 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 
 		@Override
 		public void onCheckedChanged(CompoundButton buttonView,
-									 boolean isChecked) {
+				boolean isChecked) {
 			if (isChecked) {
 				if (contact
 						.getOption(Contact.Options.PENDING_SUBSCRIPTION_REQUEST)) {
 					xmppConnectionService.sendPresencePacket(contact
-									.getAccount(),
+							.getAccount(),
 							xmppConnectionService.getPresenceGenerator()
-									.sendPresenceUpdatesTo(contact));
+							.sendPresenceUpdatesTo(contact));
 				} else {
 					contact.setOption(Contact.Options.PREEMPTIVE_GRANT);
 				}
@@ -72,7 +73,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 				contact.resetOption(Contact.Options.PREEMPTIVE_GRANT);
 				xmppConnectionService.sendPresencePacket(contact.getAccount(),
 						xmppConnectionService.getPresenceGenerator()
-								.stopPresenceUpdatesTo(contact));
+						.stopPresenceUpdatesTo(contact));
 			}
 		}
 	};
@@ -80,15 +81,15 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 
 		@Override
 		public void onCheckedChanged(CompoundButton buttonView,
-									 boolean isChecked) {
+				boolean isChecked) {
 			if (isChecked) {
 				xmppConnectionService.sendPresencePacket(contact.getAccount(),
 						xmppConnectionService.getPresenceGenerator()
-								.requestPresenceUpdatesFrom(contact));
+						.requestPresenceUpdatesFrom(contact));
 			} else {
 				xmppConnectionService.sendPresencePacket(contact.getAccount(),
 						xmppConnectionService.getPresenceGenerator()
-								.stopPresenceUpdatesFrom(contact));
+						.stopPresenceUpdatesFrom(contact));
 			}
 		}
 	};
@@ -126,7 +127,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 					ContactDetailsActivity.this);
 			builder.setTitle(getString(R.string.action_add_phone_book));
 			builder.setMessage(getString(R.string.add_phone_book_text,
-					contact.getJid()));
+						contact.getJid()));
 			builder.setNegativeButton(getString(R.string.cancel), null);
 			builder.setPositiveButton(getString(R.string.add), addToPhonebook);
 			builder.create().show();
@@ -165,7 +166,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (getIntent().getAction().equals(ACTION_VIEW_CONTACT)) {
 			try {
@@ -187,15 +188,17 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 		badge = (QuickContactBadge) findViewById(R.id.details_contact_badge);
 		keys = (LinearLayout) findViewById(R.id.details_contact_keys);
 		tags = (LinearLayout) findViewById(R.id.tags);
-		getActionBar().setHomeButtonEnabled(true);
-		getActionBar().setDisplayHomeAsUpEnabled(true);
+		if (getActionBar() != null) {
+			getActionBar().setHomeButtonEnabled(true);
+			getActionBar().setDisplayHomeAsUpEnabled(true);
+		}
 
-		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+		final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 		this.showDynamicTags = preferences.getBoolean("show_dynamic_tags",false);
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(MenuItem menuItem) {
+	public boolean onOptionsItemSelected(final MenuItem menuItem) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setNegativeButton(getString(R.string.cancel), null);
 		switch (menuItem.getItemId()) {
@@ -204,11 +207,11 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 				break;
 			case R.id.action_delete_contact:
 				builder.setTitle(getString(R.string.action_delete_contact))
-						.setMessage(
-								getString(R.string.remove_contact_text,
-										contact.getJid()))
-						.setPositiveButton(getString(R.string.delete),
-								removeFromRoster).create().show();
+					.setMessage(
+							getString(R.string.remove_contact_text,
+								contact.getJid()))
+					.setPositiveButton(getString(R.string.delete),
+							removeFromRoster).create().show();
 				break;
 			case R.id.action_edit_contact:
 				if (contact.getSystemAccount() == null) {
@@ -218,7 +221,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 						public void onValueEdited(String value) {
 							contact.setServerName(value);
 							ContactDetailsActivity.this.xmppConnectionService
-									.pushContactToServer(contact);
+								.pushContactToServer(contact);
 							populateView();
 						}
 					});
@@ -284,7 +287,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 		receive.setOnCheckedChangeListener(this.mOnReceiveCheckedChange);
 
 		lastseen.setText(UIHelper.lastseen(getApplicationContext(),
-				contact.lastseen.time));
+					contact.lastseen.time));
 
 		if (contact.getPresences().size() > 1) {
 			contactJidTv.setText(contact.getJid() + " ("
@@ -293,7 +296,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 			contactJidTv.setText(contact.getJid().toString());
 		}
 		accountJidTv.setText(getString(R.string.using_account, contact
-				.getAccount().getJid().toBareJid()));
+					.getAccount().getJid().toBareJid()));
 		prepareContactBadge(badge, contact);
 		if (contact.getSystemAccount() == null) {
 			badge.setOnClickListener(onBadgeClick);
@@ -308,10 +311,10 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 			TextView key = (TextView) view.findViewById(R.id.key);
 			TextView keyType = (TextView) view.findViewById(R.id.key_type);
 			ImageButton remove = (ImageButton) view
-					.findViewById(R.id.button_remove);
+				.findViewById(R.id.button_remove);
 			remove.setVisibility(View.VISIBLE);
 			keyType.setText("OTR Fingerprint");
-			key.setText(otrFingerprint);
+			key.setText(CryptoHelper.prettifyFingerprint(otrFingerprint));
 			keys.addView(view);
 			remove.setOnClickListener(new OnClickListener() {
 
@@ -333,7 +336,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 				@Override
 				public void onClick(View v) {
 					PgpEngine pgp = ContactDetailsActivity.this.xmppConnectionService
-							.getPgpEngine();
+						.getPgpEngine();
 					if (pgp != null) {
 						PendingIntent intent = pgp.getIntentForKey(contact);
 						if (intent != null) {
@@ -362,8 +365,8 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 		} else {
 			tags.setVisibility(View.VISIBLE);
 			tags.removeAllViewsInLayout();
-			for(ListItem.Tag tag : tagList) {
-				TextView tv = (TextView) inflater.inflate(R.layout.list_item_tag,tags,false);
+			for(final ListItem.Tag tag : tagList) {
+				final TextView tv = (TextView) inflater.inflate(R.layout.list_item_tag,tags,false);
 				tv.setText(tag.getName());
 				tv.setBackgroundColor(tag.getColor());
 				tags.addView(tv);
@@ -392,8 +395,7 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 					public void onClick(DialogInterface dialog, int which) {
 						if (contact.deleteOtrFingerprint(fingerprint)) {
 							populateView();
-							xmppConnectionService.syncRosterToDisk(contact
-									.getAccount());
+							xmppConnectionService.syncRosterToDisk(contact.getAccount());
 						}
 					}
 
@@ -405,12 +407,23 @@ public class ContactDetailsActivity extends XmppActivity implements OnAccountUpd
 	public void onBackendConnected() {
 		if ((accountJid != null) && (contactJid != null)) {
 			Account account = xmppConnectionService
-					.findAccountByJid(accountJid);
+				.findAccountByJid(accountJid);
 			if (account == null) {
 				return;
 			}
 			this.contact = account.getRoster().getContact(contactJid);
 			populateView();
 		}
+	}
+
+	@Override
+	public void OnUpdateBlocklist(final Status status) {
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+				populateView();
+			}
+		});
 	}
 }

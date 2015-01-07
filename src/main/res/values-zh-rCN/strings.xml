@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <string name="app_name">eBtalk</string>
     <string name="action_settings">设置</string>
     <string name="action_add">新会话</string>
     <string name="action_accounts">管理账户</string>
