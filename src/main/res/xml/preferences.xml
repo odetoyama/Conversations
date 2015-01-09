@@ -67,13 +67,13 @@
               android:key="enable_quiet_hours"
               android:summary="@string/pref_quiet_hours_summary"
               android:title="@string/title_pref_enable_quiet_hours" />
-            <eu.siacs.conversations.ui.TimePreference
+            <com.ebdesk.ebconvo.ui.TimePreference
               android:dependency="enable_quiet_hours"
               android:key="quiet_hours_start"
               android:negativeButtonText="@string/cancel"
               android:positiveButtonText="@string/set"
               android:title="@string/title_pref_quiet_hours_start_time" />
-            <eu.siacs.conversations.ui.TimePreference
+            <com.ebdesk.ebconvo.ui.TimePreference
               android:dependency="enable_quiet_hours"
               android:key="quiet_hours_end"
               android:negativeButtonText="@string/cancel"

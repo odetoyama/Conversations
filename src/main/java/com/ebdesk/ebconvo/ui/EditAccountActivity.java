@@ -385,7 +385,7 @@ public class EditAccountActivity extends XmppActivity implements OnAccountUpdate
 
         final KnownHostsAdapter mKnownHostsAdapter = new KnownHostsAdapter(this,
                 android.R.layout.simple_list_item_1,
-                xmppConnectionService.getKnownHosts());
+                serverList);
 
 		if (this.jidToEdit != null) {
 			this.mAccount = xmppConnectionService.findAccountByJid(jidToEdit);
