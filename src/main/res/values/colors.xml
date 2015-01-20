@@ -17,5 +17,7 @@
     <!-- custom color here -->
     <color name="primary_green" type="color">#4caf50</color>
     <color name="primary_green_dark" type="color">#4c9a50</color>
+    <color name="primary_blue" type="color">#0288d1</color>
+    <color name="primary_blue_dark" type="color">#0288d1</color>
 
 </resources>

@@ -372,7 +372,8 @@ public class EditAccountActivity extends XmppActivity implements OnAccountUpdate
 
 	@Override
 	protected void onBackendConnected() {
-        String predefinedDomain = "112.78.150.30";
+//        String predefinedDomain = "112.78.150.30";
+        String predefinedDomain = "cakap.tk";
         List<String> serverList = xmppConnectionService.getKnownHosts();
         if (!serverList.contains(predefinedDomain)){
             serverList.add(predefinedDomain);
