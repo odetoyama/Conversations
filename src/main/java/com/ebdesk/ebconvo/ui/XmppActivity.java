@@ -541,7 +541,7 @@ public abstract class XmppActivity extends Activity {
 			}
 			conversation.setNextCounterpart(jid);
 			listener.onPresenceSelected();
-		} else 	if (!contact.showInRoster()) {
+		} else 	if (!contact.showInRoster() && conversation.getMode() == Conversation.MODE_SINGLE) {
 			showAddToRosterDialog(conversation);
 		} else {
 			Presences presences = contact.getPresences();
@@ -552,7 +552,12 @@ public abstract class XmppActivity extends Activity {
 					showAskForPresenceDialog(contact);
 				} else if (!contact.getOption(Contact.Options.TO)
 						|| !contact.getOption(Contact.Options.FROM)) {
-					warnMutalPresenceSubscription(conversation, listener);
+                    if (conversation.getMode() == Conversation.MODE_SINGLE){
+                        warnMutalPresenceSubscription(conversation, listener);
+                    } else {
+                        conversation.setNextCounterpart(null);
+                        listener.onPresenceSelected();
+                    }
 				} else {
 					conversation.setNextCounterpart(null);
 					listener.onPresenceSelected();

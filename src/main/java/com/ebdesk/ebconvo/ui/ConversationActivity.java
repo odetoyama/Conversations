@@ -5,20 +5,25 @@ import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentSender.SendIntentException;
+import android.database.Cursor;
 import android.media.MediaActionSound;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.widget.SlidingPaneLayout;
 import android.support.v4.widget.SlidingPaneLayout.PanelSlideListener;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -30,20 +35,36 @@ import android.widget.Toast;
 
 import net.java.otr4j.session.SessionStatus;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.ebdesk.ebconvo.Config;
 import com.ebdesk.ebconvo.R;
 import com.ebdesk.ebconvo.entities.Account;
 import com.ebdesk.ebconvo.entities.Blockable;
 import com.ebdesk.ebconvo.entities.Contact;
 import com.ebdesk.ebconvo.entities.Conversation;
+import com.ebdesk.ebconvo.entities.DownloadableFile;
 import com.ebdesk.ebconvo.entities.Message;
+import com.ebdesk.ebconvo.persistance.FileBackend;
 import com.ebdesk.ebconvo.services.XmppConnectionService.OnAccountUpdate;
 import com.ebdesk.ebconvo.services.XmppConnectionService.OnConversationUpdate;
 import com.ebdesk.ebconvo.services.XmppConnectionService.OnRosterUpdate;
 import com.ebdesk.ebconvo.ui.adapter.ConversationAdapter;
 import com.ebdesk.ebconvo.utils.ExceptionHelper;
 import com.ebdesk.ebconvo.xmpp.OnUpdateBlocklist;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ConversationActivity extends XmppActivity
 	implements OnAccountUpdate, OnConversationUpdate, OnRosterUpdate, OnUpdateBlocklist {
@@ -305,7 +326,7 @@ public class ConversationActivity extends XmppActivity
 						}
 				if (this.getSelectedConversation().getMode() == Conversation.MODE_MULTI) {
 					menuContactDetails.setVisible(false);
-					menuAttach.setVisible(false);
+					//menuAttach.setVisible(false);
 					menuBlock.setVisible(false);
 					menuUnblock.setVisible(false);
 				} else {
@@ -873,7 +894,7 @@ public class ConversationActivity extends XmppActivity
 			} else if (requestCode == ATTACHMENT_CHOICE_CHOOSE_FILE || requestCode == ATTACHMENT_CHOICE_RECORD_VOICE) {
 				mPendingFileUri = data.getData();
 				if (xmppConnectionServiceBound) {
-					attachFileToConversation(getSelectedConversation(),mPendingFileUri);
+                    attachFileToConversation(getSelectedConversation(),mPendingFileUri);
 					mPendingFileUri = null;
 				}
 			} else if (requestCode == ATTACHMENT_CHOICE_TAKE_PHOTO && mPendingImageUri != null) {
@@ -892,30 +913,124 @@ public class ConversationActivity extends XmppActivity
 		}
 	}
 
-	private void attachFileToConversation(Conversation conversation, Uri uri) {
+	private void attachFileToConversation(final Conversation conversation, Uri uri) {
 		prepareFileToast = Toast.makeText(getApplicationContext(),
 				getText(R.string.preparing_file), Toast.LENGTH_LONG);
-		prepareFileToast.show();
-		xmppConnectionService.attachFileToConversation(conversation,uri, new UiCallback<Message>() {
-			@Override
-			public void success(Message message) {
-				hidePrepareFileToast();
-				xmppConnectionService.sendMessage(message);
-			}
+        if (conversation.getMode() == Conversation.MODE_SINGLE){
+            prepareFileToast.show();
+            xmppConnectionService.attachFileToConversation(conversation,uri, new UiCallback<Message>() {
+                @Override
+                public void success(Message message) {
+                    hidePrepareFileToast();
+                    xmppConnectionService.sendMessage(message);
+                }
 
-			@Override
-			public void error(int errorCode, Message message) {
-				displayErrorDialog(errorCode);
-			}
+                @Override
+                public void error(int errorCode, Message message) {
+                    displayErrorDialog(errorCode);
+                }
 
-			@Override
-			public void userInputRequried(PendingIntent pi, Message message) {
+                @Override
+                public void userInputRequried(PendingIntent pi, Message message) {
 
-			}
-		});
+                }
+            });
+        } else if (conversation.getMode() == Conversation.MODE_MULTI){
+            //Toast.makeText(getApplicationContext(), "It's Multi Chat Bitch", Toast.LENGTH_LONG).show();
+            prepareFileToast.show();
+            xmppConnectionService.attachFileToConversation2(conversation, uri, new UiCallback<String>() {
+                /*@Override
+                public void success(Message message) {
+                    hidePrepareFileToast();
+                    Message message2 = new Message(conversation, "path", conversation.getNextEncryption(
+                            xmppConnectionService.forceEncryption()));
+
+                    if (conversation.getNextCounterpart() != null) {
+                        message.setCounterpart(conversation.getNextCounterpart());
+                        message.setType(Message.TYPE_PRIVATE);
+                        conversation.setNextCounterpart(null);
+                    }
+
+                    xmppConnectionService.sendMessage(message2);
+                }
+
+                @Override
+                public void error(int errorCode, Message message) {
+                    displayErrorDialog(errorCode);
+                }
+
+                @Override
+                public void userInputRequried(PendingIntent pi, Message message) {
+
+                }*/
+
+                @Override
+                public void success(String object) {
+                    hidePrepareFileToast();
+                    Message message2 = new Message(conversation, object, conversation.getNextEncryption(
+                            xmppConnectionService.forceEncryption()));
+
+                    if (conversation.getNextCounterpart() != null) {
+                        message2.setCounterpart(conversation.getNextCounterpart());
+                        message2.setType(Message.TYPE_PRIVATE);
+                        conversation.setNextCounterpart(null);
+                    }
+
+                    xmppConnectionService.sendMessage(message2);
+                }
+
+                @Override
+                public void error(int errorCode, String object) {
+
+                }
+
+                @Override
+                public void userInputRequried(PendingIntent pi, String object) {
+
+                }
+            });
+            /*AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+            RequestParams params = new RequestParams();
+            String path = uri.getPath();
+            Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
+            File file = new File(xmppConnectionService.getFileBackend().getOriginalPath(uri));
+            try {
+                params.put("file", file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            String url = "http://112.78.150.30/file_save/api/index.php/uploadfile?key=rEsTlEr2";
+            asyncHttpClient.post(url, params, new JsonHttpResponseHandler(){
+
+                @Override
+                public void onStart() {
+                    super.onStart();
+                    Toast.makeText(getApplicationContext(), "Uploading", Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onFinish() {
+                    super.onFinish();
+                    Toast.makeText(getApplicationContext(), "Finished", Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onSuccess(JSONObject jsonObject) {
+                    super.onSuccess(jsonObject);
+                    try {
+                        String path = jsonObject.getString("path");
+                        Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });*/
+        }
 	}
 
-	private void attachImageToConversation(Conversation conversation, Uri uri) {
+
+
+    private void attachImageToConversation(Conversation conversation, Uri uri) {
 		prepareFileToast = Toast.makeText(getApplicationContext(),
 				getText(R.string.preparing_image), Toast.LENGTH_LONG);
 		prepareFileToast.show();

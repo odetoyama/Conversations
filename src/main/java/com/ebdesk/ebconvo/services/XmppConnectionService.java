@@ -29,9 +29,13 @@ import net.java.otr4j.session.Session;
 import net.java.otr4j.session.SessionID;
 import net.java.otr4j.session.SessionStatus;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.openintents.openpgp.util.OpenPgpApi;
 import org.openintents.openpgp.util.OpenPgpServiceConnection;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -98,6 +102,9 @@ import com.ebdesk.ebconvo.xmpp.pep.Avatar;
 import com.ebdesk.ebconvo.xmpp.stanzas.IqPacket;
 import com.ebdesk.ebconvo.xmpp.stanzas.MessagePacket;
 import com.ebdesk.ebconvo.xmpp.stanzas.PresencePacket;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
 public class XmppConnectionService extends Service implements OnPhoneContactsLoadedListener {
 
@@ -348,6 +355,97 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
 
 		}
 	}
+
+
+    public void attachFileToConversation2(final Conversation conversation,
+                                         final Uri uri,
+                                         final UiCallback<String> callback) {
+        final Message message;
+        if (conversation.getNextEncryption(forceEncryption()) == Message.ENCRYPTION_PGP) {
+            message = new Message(conversation, "",
+                    Message.ENCRYPTION_DECRYPTED);
+        } else {
+            message = new Message(conversation, "",
+                    conversation.getNextEncryption(forceEncryption()));
+        }
+        message.setCounterpart(conversation.getNextCounterpart());
+        message.setType(Message.TYPE_FILE);
+        message.setStatus(Message.STATUS_OFFERED);
+        String path = getFileBackend().getOriginalPath(uri);
+        if (path!=null) {
+            message.setRelativeFilePath(path);
+            getFileBackend().updateFileParams(message);
+            /*if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                getPgpEngine().encrypt(message, callback);
+            } else {
+                callback.success(message);
+            }*/
+            File file = getFileBackend().getFile(message);
+            doUploadFileMuc(message, file, callback);
+        } else {
+            /*new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        getFileBackend().copyFileToPrivateStorage(message, uri);
+                        getFileBackend().updateFileParams(message);
+                        if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                            getPgpEngine().encrypt(message, callback);
+                        } else {
+                            callback.success(message);
+                        }
+                    } catch (FileBackend.FileCopyException e) {
+                        callback.error(e.getResId(),message);
+                    }
+                }
+            }).start();*/
+            try {
+                File file = getFileBackend().copyFileToPrivateStorage(message, uri);
+                doUploadFileMuc(message, file, callback);
+            } catch (FileBackend.FileCopyException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void doUploadFileMuc(final Message message, File file, final UiCallback<String> callback){
+        AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+        RequestParams params = new RequestParams();
+
+        try {
+            params.put("file", file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        String url = "http://112.78.150.30/file_save/api/index.php/uploadfile?key=rEsTlEr2";
+        asyncHttpClient.post(url, params, new JsonHttpResponseHandler(){
+
+            @Override
+            public void onStart() {
+                super.onStart();
+                //Toast.makeText(getApplicationContext(), "Uploading", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFinish() {
+                super.onFinish();
+                //Toast.makeText(getApplicationContext(), "Finished", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onSuccess(JSONObject jsonObject) {
+                super.onSuccess(jsonObject);
+                try {
+                    String path = jsonObject.getString("path");
+                    //Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
+                    Log.d("upload file", "path:"+path);
+                    callback.success(path);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 
 	public void attachImageToConversation(final Conversation conversation,
 			final Uri uri, final UiCallback<Message> callback) {

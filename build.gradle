@@ -28,15 +28,16 @@ repositories {
 }
 
 dependencies {
-	compile project(':libs:minidns')
-	compile project(':libs:openpgp-api-lib')
-	compile project(':libs:MemorizingTrustManager')
-	compile 'com.android.support:support-v13:19.1.0'
-	compile 'org.bouncycastle:bcprov-jdk15on:1.50'
-	compile 'net.java:otr4j:0.21'
-	compile 'org.gnu.inet:libidn:1.15'
-	compile 'com.google.zxing:core:3.1.0'
-	compile 'com.google.zxing:android-integration:3.1.0'
+    compile project(':libs:minidns')
+    compile project(':libs:openpgp-api-lib')
+    compile project(':libs:MemorizingTrustManager')
+    compile 'com.android.support:support-v13:19.1.0'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.50'
+    compile 'net.java:otr4j:0.21'
+    compile 'org.gnu.inet:libidn:1.15'
+    compile 'com.google.zxing:core:3.1.0'
+    compile 'com.google.zxing:android-integration:3.1.0'
+    compile files('libs/android-async-http-1.4.3.jar')
 }
 
 android {
