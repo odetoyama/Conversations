@@ -130,7 +130,17 @@ public class MessageParser extends AbstractParser implements
 	}
 
 	private Message parseGroupchat(MessagePacket packet, Account account) {
-		int status;
+        Log.d("parseGroupChat", "Body: "+packet.getBody()+" | Type: "+packet.getType()+" | from: "+
+                packet.getFrom()+"["+packet.getFrom().getDomainpart()+"] ["+packet.getFrom().getResourcepart()+"]"+
+                " | account: "+account.getJid()+" ["+account.getJid().getDomainpart()+"] ["+account.getUsername()+"]");
+        //jika chat dari diri sendiri dan mengandung messagePath link file maka ga usah dimunculkan
+        if (packet.getFrom().getDomainpart().contains(account.getJid().getDomainpart())
+                && packet.getFrom().getResourcepart().equalsIgnoreCase(account.getUsername())
+                && packet.getBody().contains("112.78.150.30/file_save/files")
+                ){
+            return null;
+        }
+        int status;
         final Jid from = packet.getFrom();
 		if (from == null) {
 			return null;

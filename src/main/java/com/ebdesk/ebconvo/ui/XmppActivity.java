@@ -549,7 +549,12 @@ public abstract class XmppActivity extends Activity {
 				if (!contact.getOption(Contact.Options.TO)
 						&& !contact.getOption(Contact.Options.ASKING)
 						&& contact.getAccount().getStatus() == Account.State.ONLINE) {
-					showAskForPresenceDialog(contact);
+                    if (conversation.getMode() == Conversation.MODE_SINGLE){
+                        showAskForPresenceDialog(contact);
+                    } else {
+                        conversation.setNextCounterpart(null);
+                        listener.onPresenceSelected();
+                    }
 				} else if (!contact.getOption(Contact.Options.TO)
 						|| !contact.getOption(Contact.Options.FROM)) {
                     if (conversation.getMode() == Conversation.MODE_SINGLE){

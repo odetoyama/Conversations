@@ -29,6 +29,7 @@ import net.java.otr4j.session.Session;
 import net.java.otr4j.session.SessionID;
 import net.java.otr4j.session.SessionStatus;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.openintents.openpgp.util.OpenPgpApi;
@@ -359,7 +360,8 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
 
     public void attachFileToConversation2(final Conversation conversation,
                                          final Uri uri,
-                                         final UiCallback<String> callback) {
+                                         final UiCallback<String> callback,
+                                         final UiCallback<Message> callbackMessage) {
         final Message message;
         if (conversation.getNextEncryption(forceEncryption()) == Message.ENCRYPTION_PGP) {
             message = new Message(conversation, "",
@@ -381,7 +383,7 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
                 callback.success(message);
             }*/
             File file = getFileBackend().getFile(message);
-            doUploadFileMuc(message, file, callback);
+            doUploadFileMuc(message, file, callback, callbackMessage);
         } else {
             /*new Thread(new Runnable() {
                 @Override
@@ -401,14 +403,61 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
             }).start();*/
             try {
                 File file = getFileBackend().copyFileToPrivateStorage(message, uri);
-                doUploadFileMuc(message, file, callback);
+                doUploadFileMuc(message, file, callback, callbackMessage);
             } catch (FileBackend.FileCopyException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void doUploadFileMuc(final Message message, File file, final UiCallback<String> callback){
+
+    public void attachFileToConversationMuc(final Conversation conversation,
+                                          final Uri uri,
+                                          final UiCallback<Message> callback) {
+        final Message message;
+        if (conversation.getNextEncryption(forceEncryption()) == Message.ENCRYPTION_PGP) {
+            message = new Message(conversation, "",
+                    Message.ENCRYPTION_DECRYPTED);
+        } else {
+            message = new Message(conversation, "",
+                    conversation.getNextEncryption(forceEncryption()));
+        }
+        message.setCounterpart(conversation.getNextCounterpart());
+        message.setType(Message.TYPE_FILE);
+        message.setStatus(Message.STATUS_OFFERED);
+        String path = getFileBackend().getOriginalPath(uri);
+        if (path!=null) {
+            message.setRelativeFilePath(path);
+            getFileBackend().updateFileParams(message);
+            if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                getPgpEngine().encrypt(message, callback);
+            } else {
+                callback.success(message);
+            }
+        } else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        getFileBackend().copyFileToPrivateStorage(message, uri);
+                        getFileBackend().updateFileParams(message);
+                        if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                            getPgpEngine().encrypt(message, callback);
+                        } else {
+                            callback.success(message);
+                        }
+                    } catch (FileBackend.FileCopyException e) {
+                        callback.error(e.getResId(),message);
+                    }
+                }
+            }).start();
+        }
+    }
+
+    private void doUploadFileMuc(final Message message,
+                                 File file,
+                                 final UiCallback<String> callback,
+                                 final UiCallback<Message> callbackMessage){
         AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
         RequestParams params = new RequestParams();
 
@@ -440,9 +489,167 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
                     //Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
                     Log.d("upload file", "path:"+path);
                     callback.success(path);
+                    callbackMessage.success(message);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+    }
+
+    private void uploadFileMuc(File file, final Message message){
+        AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+        RequestParams params = new RequestParams();
+
+        try {
+            params.put("file", file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        String url = "http://112.78.150.30/file_save/api/index.php/uploadfile?key=rEsTlEr2";
+        asyncHttpClient.post(url, params, new JsonHttpResponseHandler(){
+
+            @Override
+            public void onStart() {
+                super.onStart();
+            }
+
+            @Override
+            public void onFinish() {
+                super.onFinish();
+            }
+
+            @Override
+            public void onSuccess(JSONObject jsonObject) {
+                super.onSuccess(jsonObject);
+                try {
+                    String path = jsonObject.getString("path");
+                    Log.d("upload file", "path:"+path);
+                    Message messagePath = new Message(message.getConversation(), path, message.getConversation().getNextEncryption(
+                            forceEncryption()));
+
+                    if (messagePath.getConversation().getNextCounterpart() != null) {
+                        messagePath.setCounterpart(message.getConversation().getNextCounterpart());
+                        messagePath.setType(Message.TYPE_PRIVATE);
+                        messagePath.getConversation().setNextCounterpart(null);
+                    }
+                    //messagePath is plain text that contains link to the file
+                    sendMessagePath(messagePath);
+                    markMessage(message, Message.STATUS_SEND);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            private void sendMessagePath(Message messagePath) {
+                final Account account = messagePath.getConversation().getAccount();
+                account.deactivateGracePeriod();
+                final Conversation conv = messagePath.getConversation();
+                MessagePacket packet = null;
+                boolean saveInDb = true;
+                boolean send = false;
+                if (account.getStatus() == Account.State.ONLINE
+                        && account.getXmppConnection() != null) {
+                    if (messagePath.getType() == Message.TYPE_IMAGE || messagePath.getType() == Message.TYPE_FILE) {
+                        if (messagePath.getCounterpart() != null) {
+                            if (messagePath.getEncryption() == Message.ENCRYPTION_OTR) {
+                                if (!conv.hasValidOtrSession()) {
+                                    conv.startOtrSession(messagePath.getCounterpart().getResourcepart(),true);
+                                    messagePath.setStatus(Message.STATUS_WAITING);
+                                } else if (conv.hasValidOtrSession()
+                                        && conv.getOtrSession().getSessionStatus() == SessionStatus.ENCRYPTED) {
+                                    mJingleConnectionManager
+                                            .createNewConnection(messagePath);
+                                }
+                            } else {
+                                mJingleConnectionManager.createNewConnection(messagePath);
+                            }
+                        } else {
+                            if (messagePath.getEncryption() == Message.ENCRYPTION_OTR) {
+                                conv.startOtrIfNeeded();
+                            }
+                            messagePath.setStatus(Message.STATUS_WAITING);
+                        }
+                    } else {
+                        if (messagePath.getEncryption() == Message.ENCRYPTION_OTR) {
+                            if (!conv.hasValidOtrSession() && (messagePath.getCounterpart() != null)) {
+                                conv.startOtrSession(message.getCounterpart().getResourcepart(), true);
+                                messagePath.setStatus(Message.STATUS_WAITING);
+                            } else if (conv.hasValidOtrSession()) {
+                                if (conv.getOtrSession().getSessionStatus() == SessionStatus.ENCRYPTED) {
+                                    packet = mMessageGenerator.generateOtrChat(messagePath);
+                                    send = true;
+                                } else {
+                                    messagePath.setStatus(Message.STATUS_WAITING);
+                                    conv.startOtrIfNeeded();
+                                }
+                            } else {
+                                messagePath.setStatus(Message.STATUS_WAITING);
+                            }
+                        } else if (messagePath.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                            messagePath.getConversation().endOtrIfNeeded();
+                            messagePath.getConversation().findUnsentMessagesWithOtrEncryption(new Conversation.OnMessageFound() {
+                                @Override
+                                public void onMessageFound(Message message) {
+                                    markMessage(message,Message.STATUS_SEND_FAILED);
+                                }
+                            });
+                            packet = mMessageGenerator.generatePgpChat(messagePath);
+                            send = true;
+                        } else {
+                            messagePath.getConversation().endOtrIfNeeded();
+                            messagePath.getConversation().findUnsentMessagesWithOtrEncryption(new Conversation.OnMessageFound() {
+                                @Override
+                                public void onMessageFound(Message message) {
+                                    markMessage(message,Message.STATUS_SEND_FAILED);
+                                }
+                            });
+                            packet = mMessageGenerator.generateChat(messagePath);
+                            send = true;
+                        }
+                    }
+                    if (!account.getXmppConnection().getFeatures().sm()
+                            && conv.getMode() != Conversation.MODE_MULTI) {
+                        messagePath.setStatus(Message.STATUS_SEND);
+                    }
+                } else {
+                    messagePath.setStatus(Message.STATUS_WAITING);
+                    if (messagePath.getType() == Message.TYPE_TEXT) {
+                        if (messagePath.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                            String pgpBody = messagePath.getEncryptedBody();
+                            String decryptedBody = messagePath.getBody();
+                            messagePath.setBody(pgpBody);
+                            messagePath.setEncryption(Message.ENCRYPTION_PGP);
+                            databaseBackend.createMessage(messagePath);
+                            saveInDb = false;
+                            messagePath.setBody(decryptedBody);
+                            messagePath.setEncryption(Message.ENCRYPTION_DECRYPTED);
+                        } else if (messagePath.getEncryption() == Message.ENCRYPTION_OTR) {
+                            if (!conv.hasValidOtrSession()
+                                    && messagePath.getCounterpart() != null) {
+                                conv.startOtrSession(messagePath.getCounterpart().getResourcepart(), false);
+                            }
+                        }
+                    }
+
+                }
+                /*conv.add(messagePath);
+                if (saveInDb) {
+                    if (messagePath.getEncryption() == Message.ENCRYPTION_NONE
+                            || saveEncryptedMessages()) {
+                        databaseBackend.createMessage(messagePath);
+                    }
+                }*/
+                if ((send) && (packet != null)) {
+                    sendMessagePacket(account, packet);
+                }
+                //updateConversationUi();
+            }
+
+            @Override
+            public void onFailure(Throwable throwable, JSONArray jsonArray) {
+                super.onFailure(throwable, jsonArray);
+                markMessage(message, Message.STATUS_SEND_FAILED);
             }
         });
     }
@@ -805,6 +1012,96 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
 		updateConversationUi();
 	}
 
+    //used for sendMessage file for MUC
+    public void sendMessageMuc(final Message message) {
+        final Account account = message.getConversation().getAccount();
+        account.deactivateGracePeriod();
+        final Conversation conv = message.getConversation();
+        MessagePacket packet = null;
+        boolean saveInDb = true;
+        boolean send = false;
+        if (account.getStatus() == Account.State.ONLINE
+                && account.getXmppConnection() != null) {
+            //this condition will be only executed
+            if (message.getType() == Message.TYPE_IMAGE || message.getType() == Message.TYPE_FILE) {
+                File file = getFileBackend().getFile(message);
+                uploadFileMuc(file, message);
+            } else {
+                if (message.getEncryption() == Message.ENCRYPTION_OTR) {
+                    if (!conv.hasValidOtrSession() && (message.getCounterpart() != null)) {
+                        conv.startOtrSession(message.getCounterpart().getResourcepart(), true);
+                        message.setStatus(Message.STATUS_WAITING);
+                    } else if (conv.hasValidOtrSession()) {
+                        if (conv.getOtrSession().getSessionStatus() == SessionStatus.ENCRYPTED) {
+                            packet = mMessageGenerator.generateOtrChat(message);
+                            send = true;
+                        } else {
+                            message.setStatus(Message.STATUS_WAITING);
+                            conv.startOtrIfNeeded();
+                        }
+                    } else {
+                        message.setStatus(Message.STATUS_WAITING);
+                    }
+                } else if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                    message.getConversation().endOtrIfNeeded();
+                    message.getConversation().findUnsentMessagesWithOtrEncryption(new Conversation.OnMessageFound() {
+                        @Override
+                        public void onMessageFound(Message message) {
+                            markMessage(message,Message.STATUS_SEND_FAILED);
+                        }
+                    });
+                    packet = mMessageGenerator.generatePgpChat(message);
+                    send = true;
+                } else {
+                    message.getConversation().endOtrIfNeeded();
+                    message.getConversation().findUnsentMessagesWithOtrEncryption(new Conversation.OnMessageFound() {
+                        @Override
+                        public void onMessageFound(Message message) {
+                            markMessage(message,Message.STATUS_SEND_FAILED);
+                        }
+                    });
+                    packet = mMessageGenerator.generateChat(message);
+                    send = true;
+                }
+            }
+            if (!account.getXmppConnection().getFeatures().sm()
+                    && conv.getMode() != Conversation.MODE_MULTI) {
+                message.setStatus(Message.STATUS_SEND);
+            }
+        } else {
+            message.setStatus(Message.STATUS_WAITING);
+            if (message.getType() == Message.TYPE_TEXT) {
+                if (message.getEncryption() == Message.ENCRYPTION_DECRYPTED) {
+                    String pgpBody = message.getEncryptedBody();
+                    String decryptedBody = message.getBody();
+                    message.setBody(pgpBody);
+                    message.setEncryption(Message.ENCRYPTION_PGP);
+                    databaseBackend.createMessage(message);
+                    saveInDb = false;
+                    message.setBody(decryptedBody);
+                    message.setEncryption(Message.ENCRYPTION_DECRYPTED);
+                } else if (message.getEncryption() == Message.ENCRYPTION_OTR) {
+                    if (!conv.hasValidOtrSession()
+                            && message.getCounterpart() != null) {
+                        conv.startOtrSession(message.getCounterpart().getResourcepart(), false);
+                    }
+                }
+            }
+
+        }
+        conv.add(message);
+        if (saveInDb) {
+            if (message.getEncryption() == Message.ENCRYPTION_NONE
+                    || saveEncryptedMessages()) {
+                databaseBackend.createMessage(message);
+            }
+        }
+        if ((send) && (packet != null)) {
+            sendMessagePacket(account, packet);
+        }
+        updateConversationUi();
+    }
+
 	private void sendUnsentMessages(final Conversation conversation) {
 		conversation.findWaitingMessages(new Conversation.OnMessageFound() {
 
@@ -883,6 +1180,11 @@ public class XmppConnectionService extends Service implements OnPhoneContactsLoa
 			}
 			sendMessagePacket(account, packet);
 		}
+
+        //resend file for muc
+        if (message.getConversation().getMode() == Conversation.MODE_MULTI){
+            sendMessageMuc(message);
+        }
 	}
 
 	public void fetchRosterFromServer(final Account account) {

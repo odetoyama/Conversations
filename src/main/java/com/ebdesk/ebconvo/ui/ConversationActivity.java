@@ -560,6 +560,11 @@ public class ConversationActivity extends XmppActivity
 		if (new Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION).resolveActivity(getPackageManager()) == null) {
 			attachFilePopup.getMenu().findItem(R.id.attach_record_voice).setVisible(false);
 		}
+        if  (getSelectedConversation().getMode() == Conversation.MODE_MULTI){
+            attachFilePopup.getMenu().findItem(R.id.attach_choose_picture).setVisible(false);
+            attachFilePopup.getMenu().findItem(R.id.attach_take_picture).setVisible(false);
+            attachFilePopup.getMenu().findItem(R.id.attach_record_voice).setVisible(false);
+        }
 		attachFilePopup.setOnMenuItemClickListener(new OnMenuItemClickListener() {
 
 				@Override
@@ -938,20 +943,20 @@ public class ConversationActivity extends XmppActivity
         } else if (conversation.getMode() == Conversation.MODE_MULTI){
             //Toast.makeText(getApplicationContext(), "It's Multi Chat Bitch", Toast.LENGTH_LONG).show();
             prepareFileToast.show();
-            xmppConnectionService.attachFileToConversation2(conversation, uri, new UiCallback<String>() {
-                /*@Override
+            xmppConnectionService.attachFileToConversationMuc(conversation, uri, new UiCallback<Message>() {
+                @Override
                 public void success(Message message) {
                     hidePrepareFileToast();
-                    Message message2 = new Message(conversation, "path", conversation.getNextEncryption(
-                            xmppConnectionService.forceEncryption()));
+//                    Message message2 = new Message(conversation, "path", conversation.getNextEncryption(
+//                            xmppConnectionService.forceEncryption()));
+//
+//                    if (conversation.getNextCounterpart() != null) {
+//                        message.setCounterpart(conversation.getNextCounterpart());
+//                        message.setType(Message.TYPE_PRIVATE);
+//                        conversation.setNextCounterpart(null);
+//                    }
 
-                    if (conversation.getNextCounterpart() != null) {
-                        message.setCounterpart(conversation.getNextCounterpart());
-                        message.setType(Message.TYPE_PRIVATE);
-                        conversation.setNextCounterpart(null);
-                    }
-
-                    xmppConnectionService.sendMessage(message2);
+                    xmppConnectionService.sendMessageMuc(message);
                 }
 
                 @Override
@@ -962,69 +967,11 @@ public class ConversationActivity extends XmppActivity
                 @Override
                 public void userInputRequried(PendingIntent pi, Message message) {
 
-                }*/
-
-                @Override
-                public void success(String object) {
-                    hidePrepareFileToast();
-                    Message message2 = new Message(conversation, object, conversation.getNextEncryption(
-                            xmppConnectionService.forceEncryption()));
-
-                    if (conversation.getNextCounterpart() != null) {
-                        message2.setCounterpart(conversation.getNextCounterpart());
-                        message2.setType(Message.TYPE_PRIVATE);
-                        conversation.setNextCounterpart(null);
-                    }
-
-                    xmppConnectionService.sendMessage(message2);
                 }
 
-                @Override
-                public void error(int errorCode, String object) {
 
-                }
 
-                @Override
-                public void userInputRequried(PendingIntent pi, String object) {
-
-                }
             });
-            /*AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-            RequestParams params = new RequestParams();
-            String path = uri.getPath();
-            Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
-            File file = new File(xmppConnectionService.getFileBackend().getOriginalPath(uri));
-            try {
-                params.put("file", file);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            String url = "http://112.78.150.30/file_save/api/index.php/uploadfile?key=rEsTlEr2";
-            asyncHttpClient.post(url, params, new JsonHttpResponseHandler(){
-
-                @Override
-                public void onStart() {
-                    super.onStart();
-                    Toast.makeText(getApplicationContext(), "Uploading", Toast.LENGTH_LONG).show();
-                }
-
-                @Override
-                public void onFinish() {
-                    super.onFinish();
-                    Toast.makeText(getApplicationContext(), "Finished", Toast.LENGTH_LONG).show();
-                }
-
-                @Override
-                public void onSuccess(JSONObject jsonObject) {
-                    super.onSuccess(jsonObject);
-                    try {
-                        String path = jsonObject.getString("path");
-                        Toast.makeText(getApplicationContext(), path, Toast.LENGTH_LONG).show();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });*/
         }
 	}
 
